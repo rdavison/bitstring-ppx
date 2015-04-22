@@ -78,9 +78,9 @@ let bitstring_of_chan_max chan max =
       let r = min tmpsize (max - !len) in
       let n = input chan tmp 0 r in
       if n > 0 then (
-	Buffer.add_substring buf tmp 0 n;
-	len := !len + n;
-	loop ()
+        Buffer.add_substring buf tmp 0 n;
+        len := !len + n;
+        loop ()
       )
     )
   in
@@ -107,9 +107,9 @@ let bitstring_of_file_descr_max fd max =
       let r = min tmpsize (max - !len) in
       let n = Unix.read fd tmp 0 r in
       if n > 0 then (
-	Buffer.add_substring buf tmp 0 n;
-	len := !len + n;
-	loop ()
+        Buffer.add_substring buf tmp 0 n;
+        len := !len + n;
+        loop ()
       )
     )
   in
@@ -383,7 +383,7 @@ end
 (* Extract and convert to numeric.  A single bit is returned as
  * a boolean.  There are no endianness or signedness considerations.
  *)
-let extract_bit data off len _ =	(* final param is always 1 *)
+let extract_bit data off len _ =        (* final param is always 1 *)
   let byteoff = off lsr 3 in
   let bitmask = 1 lsl (7 - (off land 7)) in
   let b = Char.code data.[byteoff] land bitmask <> 0 in
@@ -417,7 +417,7 @@ let extract_char_unsigned data off len flen =
 
     let word =
       (_get_byte data byteoff strlen lsl 8) +
-	_get_byte data (byteoff+1) strlen in
+        _get_byte data (byteoff+1) strlen in
 
     (* Mask off the top bits. *)
     let bitmask = (1 lsl (16 - (off land 7))) - 1 in
@@ -439,18 +439,18 @@ let extract_int_be_unsigned data off len flen =
     (* Optimize the common (byte-aligned) case. *)
     if off land 7 = 0 then (
       let word =
-	(_get_byte data byteoff strlen lsl 23) +
-	  (_get_byte data (byteoff+1) strlen lsl 15) +
-	  (_get_byte data (byteoff+2) strlen lsl 7) +
-	  (_get_byte data (byteoff+3) strlen lsr 1) in
+        (_get_byte data byteoff strlen lsl 23) +
+          (_get_byte data (byteoff+1) strlen lsl 15) +
+          (_get_byte data (byteoff+2) strlen lsl 7) +
+          (_get_byte data (byteoff+3) strlen lsr 1) in
       word lsr (31 - flen)
     ) else if flen <= 24 then (
       (* Extract the 31 bits at byteoff .. byteoff+3. *)
       let word =
-	(_get_byte data byteoff strlen lsl 23) +
-	  (_get_byte data (byteoff+1) strlen lsl 15) +
-	  (_get_byte data (byteoff+2) strlen lsl 7) +
-	  (_get_byte data (byteoff+3) strlen lsr 1) in
+        (_get_byte data byteoff strlen lsl 23) +
+          (_get_byte data (byteoff+1) strlen lsl 15) +
+          (_get_byte data (byteoff+2) strlen lsl 7) +
+          (_get_byte data (byteoff+3) strlen lsr 1) in
       (* Mask off the top bits. *)
       let bitmask = (1 lsl (31 - (off land 7))) - 1 in
       let word = word land bitmask in
@@ -460,14 +460,14 @@ let extract_int_be_unsigned data off len flen =
     ) else (
       (* Extract the next 31 bits, slow method. *)
       let word =
-	let c0 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c1 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c2 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c3 = extract_char_unsigned data off len 7 in
-	(c0 lsl 23) + (c1 lsl 15) + (c2 lsl 7) + c3 in
+        let c0 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c1 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c2 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c3 = extract_char_unsigned data off len 7 in
+        (c0 lsl 23) + (c1 lsl 15) + (c2 lsl 7) + c3 in
       word lsr (31 - flen)
     ) in
   word (*, off+flen, len-flen*)
@@ -491,8 +491,8 @@ let _make_int32_be c0 c1 c2 c3 =
   Int32.logor
     (Int32.logor
        (Int32.logor
-	  (Int32.shift_left c0 24)
-	  (Int32.shift_left c1 16))
+          (Int32.shift_left c0 24)
+          (Int32.shift_left c1 16))
        (Int32.shift_left c2 8))
     c3
 
@@ -500,8 +500,8 @@ let _make_int32_le c0 c1 c2 c3 =
   Int32.logor
     (Int32.logor
        (Int32.logor
-	  (Int32.shift_left c3 24)
-	  (Int32.shift_left c2 16))
+          (Int32.shift_left c3 24)
+          (Int32.shift_left c2 16))
        (Int32.shift_left c1 8))
     c0
 
@@ -515,27 +515,27 @@ let extract_int32_be_unsigned data off len flen =
     (* Optimize the common (byte-aligned) case. *)
     if off land 7 = 0 then (
       let word =
-	let c0 = _get_byte32 data byteoff strlen in
-	let c1 = _get_byte32 data (byteoff+1) strlen in
-	let c2 = _get_byte32 data (byteoff+2) strlen in
-	let c3 = _get_byte32 data (byteoff+3) strlen in
-	_make_int32_be c0 c1 c2 c3 in
+        let c0 = _get_byte32 data byteoff strlen in
+        let c1 = _get_byte32 data (byteoff+1) strlen in
+        let c2 = _get_byte32 data (byteoff+2) strlen in
+        let c3 = _get_byte32 data (byteoff+3) strlen in
+        _make_int32_be c0 c1 c2 c3 in
       Int32.shift_right_logical word (32 - flen)
     ) else (
       (* Extract the next 32 bits, slow method. *)
       let word =
-	let c0 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c1 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c2 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c3 = extract_char_unsigned data off len 8 in
-	let c0 = Int32.of_int c0 in
-	let c1 = Int32.of_int c1 in
-	let c2 = Int32.of_int c2 in
-	let c3 = Int32.of_int c3 in
-	_make_int32_be c0 c1 c2 c3 in
+        let c0 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c1 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c2 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c3 = extract_char_unsigned data off len 8 in
+        let c0 = Int32.of_int c0 in
+        let c1 = Int32.of_int c1 in
+        let c2 = Int32.of_int c2 in
+        let c3 = Int32.of_int c3 in
+        _make_int32_be c0 c1 c2 c3 in
       Int32.shift_right_logical word (32 - flen)
     ) in
   word (*, off+flen, len-flen*)
@@ -559,16 +559,16 @@ let _make_int64_be c0 c1 c2 c3 c4 c5 c6 c7 =
   Int64.logor
     (Int64.logor
        (Int64.logor
-	  (Int64.logor
-	     (Int64.logor
-		(Int64.logor
-		   (Int64.logor
-		      (Int64.shift_left c0 56)
-		      (Int64.shift_left c1 48))
-		   (Int64.shift_left c2 40))
-		(Int64.shift_left c3 32))
-	     (Int64.shift_left c4 24))
-	  (Int64.shift_left c5 16))
+          (Int64.logor
+             (Int64.logor
+                (Int64.logor
+                   (Int64.logor
+                      (Int64.shift_left c0 56)
+                      (Int64.shift_left c1 48))
+                   (Int64.shift_left c2 40))
+                (Int64.shift_left c3 32))
+             (Int64.shift_left c4 24))
+          (Int64.shift_left c5 16))
        (Int64.shift_left c6 8))
     c7
 
@@ -585,43 +585,43 @@ let extract_int64_be_unsigned data off len flen =
     (* Optimize the common (byte-aligned) case. *)
     if off land 7 = 0 then (
       let word =
-	let c0 = _get_byte64 data byteoff strlen in
-	let c1 = _get_byte64 data (byteoff+1) strlen in
-	let c2 = _get_byte64 data (byteoff+2) strlen in
-	let c3 = _get_byte64 data (byteoff+3) strlen in
-	let c4 = _get_byte64 data (byteoff+4) strlen in
-	let c5 = _get_byte64 data (byteoff+5) strlen in
-	let c6 = _get_byte64 data (byteoff+6) strlen in
-	let c7 = _get_byte64 data (byteoff+7) strlen in
-	_make_int64_be c0 c1 c2 c3 c4 c5 c6 c7 in
+        let c0 = _get_byte64 data byteoff strlen in
+        let c1 = _get_byte64 data (byteoff+1) strlen in
+        let c2 = _get_byte64 data (byteoff+2) strlen in
+        let c3 = _get_byte64 data (byteoff+3) strlen in
+        let c4 = _get_byte64 data (byteoff+4) strlen in
+        let c5 = _get_byte64 data (byteoff+5) strlen in
+        let c6 = _get_byte64 data (byteoff+6) strlen in
+        let c7 = _get_byte64 data (byteoff+7) strlen in
+        _make_int64_be c0 c1 c2 c3 c4 c5 c6 c7 in
       Int64.shift_right_logical word (64 - flen)
     ) else (
       (* Extract the next 64 bits, slow method. *)
       let word =
-	let c0 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c1 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c2 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c3 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c4 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c5 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c6 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c7 = extract_char_unsigned data off len 8 in
-	let c0 = Int64.of_int c0 in
-	let c1 = Int64.of_int c1 in
-	let c2 = Int64.of_int c2 in
-	let c3 = Int64.of_int c3 in
-	let c4 = Int64.of_int c4 in
-	let c5 = Int64.of_int c5 in
-	let c6 = Int64.of_int c6 in
-	let c7 = Int64.of_int c7 in
-	_make_int64_be c0 c1 c2 c3 c4 c5 c6 c7 in
+        let c0 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c1 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c2 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c3 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c4 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c5 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c6 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c7 = extract_char_unsigned data off len 8 in
+        let c0 = Int64.of_int c0 in
+        let c1 = Int64.of_int c1 in
+        let c2 = Int64.of_int c2 in
+        let c3 = Int64.of_int c3 in
+        let c4 = Int64.of_int c4 in
+        let c5 = Int64.of_int c5 in
+        let c6 = Int64.of_int c6 in
+        let c7 = Int64.of_int c7 in
+        _make_int64_be c0 c1 c2 c3 c4 c5 c6 c7 in
       Int64.shift_right_logical word (64 - flen)
     ) in
   word (*, off+flen, len-flen*)
@@ -635,43 +635,43 @@ let extract_int64_le_unsigned data off len flen =
     (* Optimize the common (byte-aligned) case. *)
     if off land 7 = 0 then (
       let word =
-	let c0 = _get_byte64 data byteoff strlen in
-	let c1 = _get_byte64 data (byteoff+1) strlen in
-	let c2 = _get_byte64 data (byteoff+2) strlen in
-	let c3 = _get_byte64 data (byteoff+3) strlen in
-	let c4 = _get_byte64 data (byteoff+4) strlen in
-	let c5 = _get_byte64 data (byteoff+5) strlen in
-	let c6 = _get_byte64 data (byteoff+6) strlen in
-	let c7 = _get_byte64 data (byteoff+7) strlen in
-	_make_int64_le c0 c1 c2 c3 c4 c5 c6 c7 in
+        let c0 = _get_byte64 data byteoff strlen in
+        let c1 = _get_byte64 data (byteoff+1) strlen in
+        let c2 = _get_byte64 data (byteoff+2) strlen in
+        let c3 = _get_byte64 data (byteoff+3) strlen in
+        let c4 = _get_byte64 data (byteoff+4) strlen in
+        let c5 = _get_byte64 data (byteoff+5) strlen in
+        let c6 = _get_byte64 data (byteoff+6) strlen in
+        let c7 = _get_byte64 data (byteoff+7) strlen in
+        _make_int64_le c0 c1 c2 c3 c4 c5 c6 c7 in
       Int64.logand word (I64.mask flen)
     ) else (
       (* Extract the next 64 bits, slow method. *)
       let word =
-	let c0 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c1 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c2 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c3 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c4 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c5 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c6 = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	let c7 = extract_char_unsigned data off len 8 in
-	let c0 = Int64.of_int c0 in
-	let c1 = Int64.of_int c1 in
-	let c2 = Int64.of_int c2 in
-	let c3 = Int64.of_int c3 in
-	let c4 = Int64.of_int c4 in
-	let c5 = Int64.of_int c5 in
-	let c6 = Int64.of_int c6 in
-	let c7 = Int64.of_int c7 in
-	_make_int64_le c0 c1 c2 c3 c4 c5 c6 c7 in
+        let c0 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c1 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c2 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c3 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c4 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c5 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c6 = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        let c7 = extract_char_unsigned data off len 8 in
+        let c0 = Int64.of_int c0 in
+        let c1 = Int64.of_int c1 in
+        let c2 = Int64.of_int c2 in
+        let c3 = Int64.of_int c3 in
+        let c4 = Int64.of_int c4 in
+        let c5 = Int64.of_int c5 in
+        let c6 = Int64.of_int c6 in
+        let c7 = Int64.of_int c7 in
+        _make_int64_le c0 c1 c2 c3 c4 c5 c6 c7 in
       Int64.logand word (I64.mask flen)
     ) in
   word (*, off+flen, len-flen*)
@@ -780,7 +780,7 @@ external extract_fastpath_int64_ne_signed : string -> int -> int64 -> int64 = "o
 module Buffer = struct
   type t = {
     buf : Buffer.t;
-    mutable len : int;			(* Length in bits. *)
+    mutable len : int;                  (* Length in bits. *)
     (* Last byte in the buffer (if len is not aligned).  We store
      * it outside the buffer because buffers aren't mutable.
      *)
@@ -796,9 +796,9 @@ module Buffer = struct
   let contents { buf = buf; len = len; last = last } =
     let data =
       if len land 7 = 0 then
-	Buffer.contents buf
+        Buffer.contents buf
       else
-	Buffer.contents buf ^ (String.make 1 (Char.chr last)) in
+        Buffer.contents buf ^ (String.make 1 (Char.chr last)) in
     data, 0, len
 
   (* Add exactly 8 bits. *)
@@ -844,41 +844,41 @@ module Buffer = struct
   let add_bits ({ buf = buf; len = len } as t) str slen =
     if slen > 0 then (
       if len land 7 = 0 then (
-	if slen land 7 = 0 then
-	  (* Common case - everything is byte-aligned. *)
-	  Buffer.add_substring buf str 0 (slen lsr 3)
-	else (
-	  (* Target buffer is aligned.  Copy whole bytes then leave the
-	   * remaining bits in last.
-	   *)
-	  let slenbytes = slen lsr 3 in
-	  if slenbytes > 0 then Buffer.add_substring buf str 0 slenbytes;
-	  let lastidx = min slenbytes (String.length str - 1) in
-	  let last = Char.code str.[lastidx] in (* last char *)
-	  let mask = 0xff lsl (8 - (slen land 7)) in
-	  t.last <- last land mask
-	);
-	t.len <- len + slen
+        if slen land 7 = 0 then
+          (* Common case - everything is byte-aligned. *)
+          Buffer.add_substring buf str 0 (slen lsr 3)
+        else (
+          (* Target buffer is aligned.  Copy whole bytes then leave the
+           * remaining bits in last.
+           *)
+          let slenbytes = slen lsr 3 in
+          if slenbytes > 0 then Buffer.add_substring buf str 0 slenbytes;
+          let lastidx = min slenbytes (String.length str - 1) in
+          let last = Char.code str.[lastidx] in (* last char *)
+          let mask = 0xff lsl (8 - (slen land 7)) in
+          t.last <- last land mask
+        );
+        t.len <- len + slen
       ) else (
-	(* Target buffer is unaligned.  Copy whole bytes using
-	 * add_byte which knows how to deal with an unaligned
-	 * target buffer, then call add_bit for the remaining < 8 bits.
-	 *
-	 * XXX This is going to be dog-slow.
-	 *)
-	let slenbytes = slen lsr 3 in
-	for i = 0 to slenbytes-1 do
-	  let byte = Char.code str.[i] in
-	  add_byte t byte
-	done;
-	let bitsleft = slen - (slenbytes lsl 3) in
-	if bitsleft > 0 then (
-	  let c = Char.code str.[slenbytes] in
-	  for i = 0 to bitsleft - 1 do
-	    let bit = c land (0x80 lsr i) <> 0 in
-	    add_bit t bit
-	  done
-	)
+        (* Target buffer is unaligned.  Copy whole bytes using
+         * add_byte which knows how to deal with an unaligned
+         * target buffer, then call add_bit for the remaining < 8 bits.
+         *
+         * XXX This is going to be dog-slow.
+         *)
+        let slenbytes = slen lsr 3 in
+        for i = 0 to slenbytes-1 do
+          let byte = Char.code str.[i] in
+          add_byte t byte
+        done;
+        let bitsleft = slen - (slenbytes lsl 3) in
+        if bitsleft > 0 then (
+          let c = Char.code str.[slenbytes] in
+          for i = 0 to bitsleft - 1 do
+            let bit = c land (0x80 lsr i) <> 0 in
+            add_bit t bit
+          done
+        )
       );
     )
 end
@@ -1028,13 +1028,13 @@ let string_of_bitstring (data, off, len) =
     let str = String.make strlen '\000' in
     let rec loop data off len i =
       if len >= 8 then (
-	let c = extract_char_unsigned data off len 8
-	and off = off + 8 and len = len - 8 in
-	str.[i] <- Char.chr c;
-	loop data off len (i+1)
+        let c = extract_char_unsigned data off len 8
+        and off = off + 8 and len = len - 8 in
+        str.[i] <- Char.chr c;
+        loop data off len (i+1)
       ) else if len > 0 then (
-	let c = extract_char_unsigned data off len len in
-	str.[i] <- Char.chr (c lsl (8-len))
+        let c = extract_char_unsigned data off len len in
+        str.[i] <- Char.chr (c lsl (8-len))
       )
     in
     loop data off len 0;
@@ -1078,11 +1078,11 @@ let compare ((data1, off1, len1) as bs1) ((data2, off2, len2) as bs2) =
     and len1 = len1 lsr 3 and len2 = len2 lsr 3 in
     let rec loop i =
       if i < len1 && i < len2 then (
-	let c1 = String.unsafe_get data1 (off1 + i)
-	and c2 = String.unsafe_get data2 (off2 + i) in
-	let r = compare c1 c2 in
-	if r <> 0 then r
-	else loop (i+1)
+        let c1 = String.unsafe_get data1 (off1 + i)
+        and c2 = String.unsafe_get data2 (off2 + i) in
+        let r = compare c1 c2 in
+        if r <> 0 then r
+        else loop (i+1)
       )
       else len1 - len2
     in
