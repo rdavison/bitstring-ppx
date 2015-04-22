@@ -1,4 +1,4 @@
-<bitstring_persistent.*>: package(compiler-libs.common), package(ppx_tools.metaquot)
-<ppx_bitstring.*>: package(compiler-libs.common), package(unix), package(ppx_tools.metaquot), package(re)
-<bitstring_c.*>: endianness
-<bitstring.*>: bitstring_c, package(unix)
+<src/bitstring_persistent.*>: package(compiler-libs.common), package(ppx_tools.metaquot)
+<src/ppx_bitstring.*>: package(compiler-libs.common), package(unix), package(ppx_tools.metaquot), package(re)
+<src/bitstring_c.*>: endianness
+<src/bitstring.*>: bitstring_c, package(unix)

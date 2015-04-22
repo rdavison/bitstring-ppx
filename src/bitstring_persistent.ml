@@ -259,7 +259,6 @@ let set_string_expr field str =
   let loc = field.loc in
   { field with field = Exp.constant ~loc (Const_string (str, None)) }
 let set_expr field expr =
-  let loc = field.loc in
   { field with field = expr }
 
 let get_patt field = field.field
