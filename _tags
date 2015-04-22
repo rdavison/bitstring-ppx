@@ -1,1 +1,2 @@
 <bitstring_c.*>: endianness
+<bitstring.*>: bitstring_c, package(unix)
