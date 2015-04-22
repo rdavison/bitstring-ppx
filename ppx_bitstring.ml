@@ -243,9 +243,9 @@ let patt_field loc field =
       let field = P.create_pattern_field loc in
       let field = P.set_patt field fpatt in
       let field = P.set_length field len in
-      [parse_field loc field qs] (* Normal, single field. *)
+      [parse_field loc field qs]      (* Normal, single field. *)
   | `Delim _ :: `Text name :: [] ->
-      assert false
+      expand_named_pattern loc name   (* Named -> list of fields. *)
   | l ->
       (* List.iter (function (`Text t) -> Printf.eprintf "Text: %S\n%!" t *)
       (*                   | `Delim _ -> Printf.eprintf "Delim\n%!") l; *)
@@ -1283,11 +1283,10 @@ let output_bitmatch loc bs cases =
         raise (Match_failure
                  ([%e Ast.str loc_fname], [%e Ast.int loc_line], [%e Ast.int loc_char]))]
 
-(*
 (* Add named patterns from a file.  See the documentation on the
  * directory search path in bitstring_persistent.mli
  *)
-let load_patterns_from_file _loc filename =
+let load_patterns_from_file loc filename =
   let chan =
     if Filename.is_relative filename && Filename.is_implicit filename then (
       (* Try current directory. *)
@@ -1295,10 +1294,10 @@ let load_patterns_from_file _loc filename =
       with _ ->
         (* Try OCaml library directory. *)
         try open_in (Filename.concat Bitstring_config.ocamllibdir filename)
-        with exn -> Loc.raise _loc exn
+        with exn -> Location.raise_errorf ~loc "Exn : %s" (Printexc.to_string exn)
     ) else (
       try open_in filename
-      with exn -> Loc.raise _loc exn
+      with exn -> Location.raise_errorf ~loc "Exn : %s" (Printexc.to_string exn)
     ) in
   let names = ref [] in
   (try
@@ -1315,11 +1314,12 @@ let load_patterns_from_file _loc filename =
     function
     | name, P.Pattern patt ->
         if patt = [] then
-          locfail _loc (sprintf "pattern %s: no fields" name);
-        add_named_pattern _loc name patt
+          locfail loc (sprintf "pattern %s: no fields" name);
+        add_named_pattern loc name patt
     | _, P.Constructor _ -> () (* just ignore these for now *)
   ) names
 
+(*
 EXTEND Gram
   GLOBAL: expr str_item;
 
@@ -1391,7 +1391,6 @@ EXTEND Gram
     ]
   ];
 
-  (* 'bitmatch' expressions. *)
   expr: LEVEL ";" [
     [ "bitmatch";
       bs = expr; "with"; OPT "|";
@@ -1428,17 +1427,40 @@ EXTEND Gram
 END
 *)
 
-let bitstring_mapper argv =
-  { default_mapper with
-    expr = fun mapper expr ->
-      match expr with
-      | {pexp_desc =
-           Pexp_extension
-             ({txt = "bitstring" }, PStr
-                [{pstr_desc = Pstr_eval ({pexp_desc = Pexp_match (bs, cases)}, _)}]) } ->
-          output_bitmatch expr.pexp_loc bs (List.map patt_case cases)
-      | other ->
-          default_mapper.expr mapper other }
+(* Named persistent patterns.
+ *
+ * NB: Currently only allowed at the top level.  We can probably lift
+ * this restriction later if necessary.  We only deal with patterns
+ * at the moment, not constructors, but the infrastructure to do
+ * constructors is in place.
+ *)
+let structure_item mapper = function
+  | {pstr_desc =
+       Pstr_extension
+         (({txt = "bitstring"},
+           PStr
+             [{pstr_desc =
+                 Pstr_value
+                   (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = name}};
+                         pvb_expr = {pexp_desc = Pexp_constant (Const_string (fields, Some ""));
+                                     pexp_loc = loc_fields}}])}]), []);
+     pstr_loc = loc} ->
+      add_named_pattern loc name (patt_fields loc_fields fields);
+      Str.mk (Pstr_eval (Ast.unit (), []))
+  | other ->
+      default_mapper.structure_item mapper other
+
+(* 'bitmatch' expressions. *)
+let expr mapper = function
+  | {pexp_desc =
+       Pexp_extension
+         ({txt = "bitstring" }, PStr
+            [{pstr_desc = Pstr_eval ({pexp_desc = Pexp_match (bs, cases)}, _)}]);
+     pexp_loc = loc} ->
+      output_bitmatch loc bs (List.map patt_case cases)
+  | other ->
+      default_mapper.expr mapper other
 
 let () =
-  Ast_mapper.register "ppx_bitstring" bitstring_mapper
+  Ast_mapper.register "ppx_bitstring"
+    (fun argv -> {default_mapper with expr})
