@@ -3,7 +3,7 @@ open Ocamlbuild_plugin
 let () =
   dispatch begin function
     | Before_options ->
-        Options.use_ocamlfind := true
+      Options.use_ocamlfind := true
     | After_rules ->
       flag_and_dep ["ocaml"; "link"; "bitstring_c"] (A"bitstring_c.o");
       dep ["c"; "endianness"; "compile"] ["byteswap.h"];
