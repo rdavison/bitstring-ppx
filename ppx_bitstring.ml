@@ -215,6 +215,12 @@ let parse_field loc field qs =
 
   field
 
+let qualifier = function
+  | {pexp_desc = Pexp_ident {txt = Lident q}} -> (q, None)
+  | {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident q}}, [_, e])} -> (q, Some e)
+  | {pexp_loc = loc} ->
+      Location.raise_errorf ~loc "bitstring: invalid qualifier syntax"
+
 (* Field used in the bitmatch operator (a pattern).  This can actually
  * return multiple fields, in the case where the 'field' is a named
  * persitent pattern.
@@ -227,9 +233,12 @@ let patt_field loc field =
       let qs =
         match qs with
         | [] -> None
-        | `Delim _ :: `Text qs :: [] -> None
+        | `Delim _ :: `Text qs :: [] ->
+            let qs = Re.split Re.(compile (char ',')) qs in
+            let qs = List.map (fun q -> Parse.expression (Lexing.from_string q)) qs in
+            Some (List.map qualifier qs)
         | _ ->
-            assert false
+            Location.raise_errorf "bitstring: invalid qualifier list"
       in
       let field = P.create_pattern_field loc in
       let field = P.set_patt field fpatt in
@@ -1227,8 +1236,7 @@ let output_bitmatch loc bs cases =
         | Some name ->
             [%expr let name = data, original_off, original_len in [%e inner]]
         | None -> inner in
-      (* let fields = patt_fields pc_lhs in *)
-      output_field_extraction inner [] (* (List.rev fields) *)
+      output_field_extraction inner (List.rev fields)
   ) cases in
 
   (* Join them into a single expression.
