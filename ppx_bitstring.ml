@@ -23,18 +23,10 @@ open Asttypes
 open Parsetree
 open Ast_mapper
 open Ast_helper
-
+open Longident
 module Ast = Ast_convenience
 
 open Printf
-open Bitstring
-module P = Bitstring_persistent
-
-(*
-open Camlp4.PreCast
-open Syntax
-open Ast
-
 open Bitstring
 module P = Bitstring_persistent
 
@@ -49,7 +41,17 @@ let debug = false
 (* Hashtable storing named persistent patterns. *)
 let pattern_hash : (string, P.pattern) Hashtbl.t = Hashtbl.create 13
 
-let locfail _loc msg = Loc.raise _loc (Failure msg)
+let locfail loc msg = Location.raise_errorf ~loc "%s" msg
+
+(* Add a named pattern. *)
+let add_named_pattern loc name pattern =
+  Hashtbl.add pattern_hash name pattern
+
+(* Expand a named pattern from the pattern_hash. *)
+let expand_named_pattern loc name =
+  try Hashtbl.find pattern_hash name
+  with Not_found ->
+    locfail loc (sprintf "named pattern not found: %s" name)
 
 (* Work out if an expression is an integer constant.
  *
@@ -59,9 +61,9 @@ let locfail _loc msg = Loc.raise _loc (Failure msg)
  * expressions such as [k], [k+c], [k-c] etc.
  *)
 let rec expr_is_constant = function
-  | <:expr< $int:i$ >> ->              (* Literal integer constant. *)
-    Some (int_of_string i)
-  | <:expr< $lid:op$ $a$ $b$ >> ->
+  | {pexp_desc = Pexp_constant (Const_int i)} -> (* Literal integer constant. *)
+    Some i
+  | [%expr [%e? {pexp_desc = Pexp_ident {txt=Lident op}}] [%e? a] [%e? b]] ->
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b ->               (* Integer binary operations. *)
          let ops = ["+", (+); "-", (-); "*", ( * ); "/", (/);
@@ -78,7 +80,6 @@ let rec expr_is_constant = function
          (try Some ((List.assoc op ops) a b) with Not_found -> None)
      | _ -> None)
   | _ -> None
-*)
 
 (* Generate a fresh, unique symbol each time called. *)
 let gensym =
@@ -87,7 +88,29 @@ let gensym =
     incr i; let i = !i in
     sprintf "__pabitstring_%s_%d" name i
 
-(*
+(* (\* Qualifiers are a list of identifiers ("string", "bigendian", etc.) *)
+(*  * followed by an optional expression (used in certain cases).  Note *)
+(*  * that we are careful not to declare any explicit reserved words. *)
+(*  *\) *)
+(* let qualifiers: [ *)
+(*   [ LIST0 *)
+(*       [ q = LIDENT; *)
+(*         e = OPT [ "("; e = expr; ")" -> e ] -> (q, e) ] *)
+(*       SEP "," ] *)
+(* ]; *)
+
+(* let patt_field: [ *)
+(*   [ fpatt = patt; ":"; len = expr LEVEL "top"; *)
+(*     qs = OPT [ ":"; qs = qualifiers -> qs ] -> *)
+(*       let field = P.create_pattern_field _loc in *)
+(*       let field = P.set_patt field fpatt in *)
+(*       let field = P.set_length field len in *)
+(*       [parse_field _loc field qs]     (\* Normal, single field. *\) *)
+(*   | ":"; name = LIDENT -> *)
+(*       expand_named_pattern _loc name (\* Named -> list of fields. *\) *)
+(*   ] *)
+(* ] *)
+
 (* Used to keep track of which qualifiers we've seen in parse_field. *)
 type whatset_t = {
   endian_set : bool; signed_set : bool; type_set : bool;
@@ -101,8 +124,8 @@ let noneset = {
 }
 
 (* Deal with the qualifiers which appear for a field of both types. *)
-let parse_field _loc field qs =
-  let fail = locfail _loc in
+let parse_field loc field qs =
+  let fail = locfail loc in
 
   let whatset, field =
     match qs with
@@ -140,7 +163,7 @@ let parse_field _loc field qs =
                 "a save_offset_to-qualifier has been set already";
               let id =
                 match expr with
-                | <:expr< $lid:id$ >> -> id
+                | {pexp_desc = Pexp_ident {txt = Lident id}} -> id
                 | _ ->
                     failwith "pa_bitstring: internal error: save_offset_to only supports simple identifiers at the moment.  In future we should support full patterns." in
               let field = P.set_save_offset_to_lident field id in
@@ -192,6 +215,54 @@ let parse_field _loc field qs =
 
   field
 
+(* Field used in the bitmatch operator (a pattern).  This can actually
+ * return multiple fields, in the case where the 'field' is a named
+ * persitent pattern.
+ *)
+let patt_field loc field =
+  match Re.split_full Re.(compile (char ':')) field with
+  | `Text fpatt :: `Delim _ :: `Text len :: qs ->
+      let fpatt = Parse.pattern (Lexing.from_string fpatt) in
+      let len = Parse.expression (Lexing.from_string len) in
+      let qs =
+        match qs with
+        | [] -> None
+        | `Delim _ :: `Text qs :: [] -> None
+        | _ ->
+            assert false
+      in
+      let field = P.create_pattern_field loc in
+      let field = P.set_patt field fpatt in
+      let field = P.set_length field len in
+      [parse_field loc field qs] (* Normal, single field. *)
+  | `Delim _ :: `Text name :: [] ->
+      assert false
+  | l ->
+      (* List.iter (function (`Text t) -> Printf.eprintf "Text: %S\n%!" t *)
+      (*                   | `Delim _ -> Printf.eprintf "Delim\n%!") l; *)
+      Location.raise_errorf "bitstring: invalid pattern field"
+
+(* Case inside bitmatch operator. *)
+let patt_fields loc fields =
+  match String.trim fields with
+  | "_" -> []
+  | fields ->
+      let fields = Re.split Re.(compile (char ';')) fields in
+      List.concat (List.map (patt_field loc) fields)
+
+let patt_case case =
+  let aux = function
+    | {ppat_desc = Ppat_constant (Const_string (fields, Some "")); ppat_loc = loc} ->
+        patt_fields loc fields
+    | {ppat_loc = loc} ->
+        Location.raise_errorf ~loc "bitstring: invalid pattern"
+  in
+  match case.pc_lhs with
+  | {ppat_desc = Ppat_alias (p, {txt = name})} ->
+      (aux p, Some name, case.pc_guard, case.pc_rhs)
+  | p ->
+      (aux p, None, case.pc_guard, case.pc_rhs)
+
 type functype = ExtractFunc | ConstructFunc
 
 (* Choose the right constructor function. *)
@@ -200,15 +271,15 @@ let build_bitstring_call _loc functype length endian signed =
     (* XXX The meaning of signed/unsigned breaks down at
      * 31, 32, 63 and 64 bits.
      *)
-  | (ExtractFunc, Some 1, _, _) -> <:expr< Bitstring.extract_bit >>
-  | (ConstructFunc, Some 1, _, _) -> <:expr< Bitstring.construct_bit >>
+  | (ExtractFunc, Some 1, _, _) -> [%expr Bitstring.extract_bit]
+  | (ConstructFunc, Some 1, _, _) -> [%expr Bitstring.construct_bit]
   | (functype, Some (2|3|4|5|6|7|8), _, signed) ->
       let funcname = match functype with
         | ExtractFunc -> "extract"
         | ConstructFunc -> "construct" in
       let sign = if signed then "signed" else "unsigned" in
       let call = sprintf "%s_char_%s" funcname sign in
-      <:expr< Bitstring.$lid:call$ >>
+      Ast.evar ("Bitstring." ^ call)
   | (functype, len, endian, signed) ->
       let funcname = match functype with
         | ExtractFunc -> "extract"
@@ -225,11 +296,12 @@ let build_bitstring_call _loc functype length endian signed =
           | LittleEndian -> "le"
           | NativeEndian -> "ne" in
           let call = sprintf "%s_%s_%s_%s" funcname t endianness sign in
-          <:expr< Bitstring.$lid:call$ >>
+          Ast.evar ("Bitstring." ^ call)
       | P.EndianExpr expr ->
           let call = sprintf "%s_%s_%s_%s" funcname t "ee" sign in
-          <:expr< Bitstring.$lid:call$ $expr$ >>
+          Ast.app (Ast.evar ("Bitstring." ^ call)) [expr]
 
+(*
 (* Generate the code for a constructor, ie. 'BITSTRING ...'. *)
 let output_constructor _loc fields =
   (* This function makes code to raise a Bitstring.Construct_failure exception
@@ -497,8 +569,6 @@ let output_bitmatch loc bs cases =
    * The whole thing is a lot of nested 'if'/'match' statements.
    * Code is generated from the inner-most (last) field outwards.
    *)
-  let output_field_extraction inner _ = [%expr assert false] in
-(*
   let rec output_field_extraction inner = function
     | [] -> inner
     | field :: fields ->
@@ -532,12 +602,12 @@ let output_bitmatch loc bs cases =
           match P.get_bind field with
           | None -> expr
           | Some bind_expr ->
-              <:expr< let $fpatt$ = $bind_expr$ in $expr$ >> in
+              [%expr let [%p fpatt] = [%e bind_expr] in [%e expr]] in
         let expr =
           match P.get_check field with
           | None -> expr
           | Some check_expr ->
-              <:expr< if $check_expr$ then $expr$ >> in
+              [%expr if [%e check_expr] then [%e expr]] in
 
         (* Compute the offset of this field within the match, if it
          * can be known at compile time.
@@ -644,24 +714,39 @@ let output_bitmatch loc bs cases =
 
               (* The fast-path code when everything is aligned. *)
               let fastpath =
-                <:expr<
+                [%expr
                   let o =
-                    ($lid:original_off$ lsr 3) + $`int:field_byte_offset$ in
-                  Char.code (String.unsafe_get $lid:data$ o)
-                >> in
+                    [%e Ast.evar original_off] lsr 3 + [%e Ast.int field_byte_offset] in
+                  Char.code (String.unsafe_get [%e Ast.evar data] o)] in
+                (* <:expr< *)
+                (*   let o = *)
+                (*     ($lid:original_off$ lsr 3) + $`int:field_byte_offset$ in *)
+                (*   Char.code (String.unsafe_get $lid:data$ o) *)
+                (* >> in *)
 
-              <:expr<
-                if $lid:len$ >= 8 then (
+              [%expr
+                if [%e Ast.evar len] >= 8 then (
                   let v =
-                    if $lid:off_aligned$ then
-                      $fastpath$
+                    if [%e Ast.evar off_aligned] then
+                      [%e fastpath]
                     else
-                      $extract_fn$ $lid:data$ $lid:off$ $lid:len$ 8 in
-                  let $lid:off$ = $lid:off$ + 8
-                  and $lid:len$ = $lid:len$ - 8 in
-                  match v with $fpatt$ when true -> $expr$ | _ -> ()
-                )
-              >>
+                      [%e extract_fn] [%e Ast.evar data] [%e Ast.evar off] [%e Ast.evar len] 8 in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + 8
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - 8 in
+                  match v with [%p fpatt] when true -> [%e expr] | _ -> ()
+                )]
+              (* <:expr< *)
+              (*   if $lid:len$ >= 8 then ( *)
+              (*     let v = *)
+              (*       if $lid:off_aligned$ then *)
+              (*         $fastpath$ *)
+              (*       else *)
+              (*         $extract_fn$ $lid:data$ $lid:off$ $lid:len$ 8 in *)
+              (*     let $lid:off$ = $lid:off$ + 8 *)
+              (*     and $lid:len$ = $lid:len$ - 8 in *)
+              (*     match v with $fpatt$ when true -> $expr$ | _ -> () *)
+              (*   ) *)
+              (* >> *)
 
           | P.Int, Some ((16|32|64) as i),
             Some field_byte_offset, (P.ConstantEndian _ as endian), signed ->
@@ -680,55 +765,87 @@ let output_bitmatch loc bs cases =
                     sprintf "extract_fastpath_int%d_%s_%s" i endian signed in
                   match i with
                   | 16 ->
-                      <:expr< Bitstring.$lid:name$ $lid:data$ o >>
+                      [%expr [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o]
+                      (* <:expr< Bitstring.$lid:name$ $lid:data$ o >> *)
                   | 32 ->
-                      <:expr<
-                        (* must allocate a new zero each time *)
+                      (* must allocate a new zero each time *)
+                      [%expr
                         let zero = Int32.of_int 0 in
-                        Bitstring.$lid:name$ $lid:data$ o zero
-                      >>
+                        [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o zero]
+                      (* <:expr< *)
+                      (*   let zero = Int32.of_int 0 in *)
+                      (*   Bitstring.$lid:name$ $lid:data$ o zero *)
+                      (* >> *)
                   | 64 ->
-                      <:expr<
-                        (* must allocate a new zero each time *)
+                      (* must allocate a new zero each time *)
+                      [%expr
                         let zero = Int64.of_int 0 in
-                        Bitstring.$lid:name$ $lid:data$ o zero
-                      >>
+                        [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o zero]
+                      (* <:expr< *)
+                      (*   let zero = Int64.of_int 0 in *)
+                      (*   Bitstring.$lid:name$ $lid:data$ o zero *)
+                      (* >> *)
                   | _ -> assert false in
-                <:expr<
-                  (* Starting offset within the string. *)
+                (* Starting offset within the string. *)
+                [%expr
                   let o =
-                    ($lid:original_off$ lsr 3) + $`int:field_byte_offset$ in
-                  $fastpath_call$
-                >> in
+                    [%e Ast.evar original_off] lsr 3 + [%e Ast.int field_byte_offset] in
+                  [%e fastpath_call]] in
+                (* <:expr< *)
+                (*   let o = *)
+                (*     ($lid:original_off$ lsr 3) + $`int:field_byte_offset$ in *)
+                (*   $fastpath_call$ *)
+                (* >> in *)
 
               let slowpath =
-                <:expr<
-                  $extract_fn$ $lid:data$ $lid:off$ $lid:len$ $`int:i$
-                >> in
+                [%expr
+                  [%e extract_fn]
+                    [%e Ast.evar data] [%e Ast.evar off] [%e Ast.evar len] [%e Ast.int i]] in
+                (* <:expr< *)
+                (*   $extract_fn$ $lid:data$ $lid:off$ $lid:len$ $`int:i$ *)
+              (* >> in *)
 
-              <:expr<
-                if $lid:len$ >= $`int:i$ then (
+              [%expr
+                if [%e Ast.evar len] >= [%e Ast.int i] then (
                   let v =
-                    if $lid:off_aligned$ then $fastpath$ else $slowpath$ in
-                  let $lid:off$ = $lid:off$ + $`int:i$
-                  and $lid:len$ = $lid:len$ - $`int:i$ in
-                  match v with $fpatt$ when true -> $expr$ | _ -> ()
-                )
-              >>
+                    if [%e Ast.evar off_aligned] then [%e fastpath] else [%e slowpath] in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.int i]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e Ast.int i] in
+                  match v with [%p fpatt] when true -> [%e expr] | _ -> ()
+                )]
+
+              (* <:expr< *)
+              (*   if $lid:len$ >= $`int:i$ then ( *)
+              (*     let v = *)
+              (*       if $lid:off_aligned$ then $fastpath$ else $slowpath$ in *)
+              (*     let $lid:off$ = $lid:off$ + $`int:i$ *)
+              (*     and $lid:len$ = $lid:len$ - $`int:i$ in *)
+              (*     match v with $fpatt$ when true -> $expr$ | _ -> () *)
+              (*   ) *)
+              (* >> *)
 
           (* Common case: int field, constant flen *)
           | P.Int, Some i, _, _, _ when i > 0 && i <= 64 ->
               let extract_fn = int_extract_const i endian signed in
               let v = gensym "val" in
-              <:expr<
-                if $lid:len$ >= $`int:i$ then (
-                  let $lid:v$ =
-                    $extract_fn$ $lid:data$ $lid:off$ $lid:len$ $`int:i$ in
-                  let $lid:off$ = $lid:off$ + $`int:i$
-                  and $lid:len$ = $lid:len$ - $`int:i$ in
-                  match $lid:v$ with $fpatt$ when true -> $expr$ | _ -> ()
-                )
-              >>
+              [%expr
+                if [%e Ast.evar len] >= [%e Ast.int i] then (
+                  let [%p Ast.pvar v] =
+                    [%e extract_fn] [%e Ast.evar data] [%e Ast.evar off] [%e Ast.evar len]
+                      [%e Ast.int i] in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.int i]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e Ast.int i] in
+                  match [%e Ast.evar v] with [%p fpatt] when true -> [%e expr] | _ -> ()
+                )]
+              (* <:expr< *)
+              (*   if $lid:len$ >= $`int:i$ then ( *)
+              (*     let $lid:v$ = *)
+              (*       $extract_fn$ $lid:data$ $lid:off$ $lid:len$ $`int:i$ in *)
+              (*     let $lid:off$ = $lid:off$ + $`int:i$ *)
+              (*     and $lid:len$ = $lid:len$ - $`int:i$ in *)
+              (*     match $lid:v$ with $fpatt$ when true -> $expr$ | _ -> () *)
+              (*   ) *)
+              (* >> *)
 
           | P.Int, Some _, _, _, _ ->
               fail "length of int field must be [1..64]"
@@ -740,15 +857,24 @@ let output_bitmatch loc bs cases =
           | P.Int, None, _, _, _ ->
               let extract_fn = int_extract endian signed in
               let v = gensym "val" in
-              <:expr<
-                if $flen$ >= 1 && $flen$ <= 64 && $flen$ <= $lid:len$ then (
-                  let $lid:v$ =
-                    $extract_fn$ $lid:data$ $lid:off$ $lid:len$ $flen$ in
-                  let $lid:off$ = $lid:off$ + $flen$
-                  and $lid:len$ = $lid:len$ - $flen$ in
-                  match $lid:v$ with $fpatt$ when true -> $expr$ | _ -> ()
-                )
-              >>
+              [%expr
+                if [%e flen] >= 1 && [%e flen] <= 64 && [%e flen] <= [%e Ast.evar len] then (
+                  let [%p Ast.pvar v] =
+                    [%e extract_fn] [%e Ast.evar data] [%e Ast.evar off] [%e Ast.evar len]
+                      [%e flen] in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e flen]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e flen] in
+                  match [%e Ast.evar v] with [%p fpatt] when true -> [%e expr] | _ -> ()
+                )]
+              (* <:expr< *)
+              (*   if $flen$ >= 1 && $flen$ <= 64 && $flen$ <= $lid:len$ then ( *)
+              (*     let $lid:v$ = *)
+              (*       $extract_fn$ $lid:data$ $lid:off$ $lid:len$ $flen$ in *)
+              (*     let $lid:off$ = $lid:off$ + $flen$ *)
+              (*     and $lid:len$ = $lid:len$ - $flen$ in *)
+              (*     match $lid:v$ with $fpatt$ when true -> $expr$ | _ -> () *)
+              (*   ) *)
+              (* >> *)
 
           (* String, constant flen > 0.
            * The field is at a known byte-aligned offset so we may
@@ -757,49 +883,78 @@ let output_bitmatch loc bs cases =
           | P.String, Some i, Some field_byte_offset, _, _
               when i > 0 && i land 7 = 0 ->
               let fastpath =
-                <:expr<
-                  (* Starting offset within the string. *)
+                (* Starting offset within the string. *)
+                [%expr
                   let o =
-                    ($lid:original_off$ lsr 3) + $`int:field_byte_offset$ in
-                  String.sub $lid:data$ o $`int:(i lsr 3)$
-                >> in
+                    [%e Ast.evar original_off] lsr 3 + [%e Ast.int field_byte_offset] in
+                  String.sub [%e Ast.evar data] o [%e Ast.int (i lsr 3)]] in
+                (* <:expr< *)
+                (*   let o = *)
+                (*     ($lid:original_off$ lsr 3) + $`int:field_byte_offset$ in *)
+                (*   String.sub $lid:data$ o $`int:(i lsr 3)$ *)
+                (* >> in *)
 
               let slowpath =
-                <:expr<
+                [%expr
                   Bitstring.string_of_bitstring
-                    ($lid:data$, $lid:off$, $`int:i$)
-                >> in
+                    ([%e Ast.evar data], [%e Ast.evar off], [%e Ast.int i])] in
+                (* <:expr< *)
+                (*   Bitstring.string_of_bitstring *)
+                (*     ($lid:data$, $lid:off$, $`int:i$) *)
+                (* >> in *)
 
               let cond =
-                <:expr<
-                  if $lid:off_aligned$ then $fastpath$ else $slowpath$
-                >> in
+                [%expr
+                   if [%e Ast.evar off_aligned] then [%e fastpath] else [%e slowpath]] in
+                (* <:expr< *)
+                (*   if $lid:off_aligned$ then $fastpath$ else $slowpath$ *)
+                (* >> in *)
 
-              <:expr<
-                if $lid:len$ >= $`int:i$ then (
-                  let str = $cond$ in
-                  let $lid:off$ = $lid:off$ + $`int:i$
-                  and $lid:len$ = $lid:len$ - $`int:i$ in
+              [%expr
+                if [%e Ast.evar len] >= [%e Ast.int i] then (
+                  let str = [%e cond] in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.int i]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e Ast.int i] in
                   match str with
-                  | $fpatt$ when true -> $expr$
+                  | [%p fpatt] when true -> [%e expr]
                   | _ -> ()
-                )
-              >>
+                )]
+              (* <:expr< *)
+              (*   if $lid:len$ >= $`int:i$ then ( *)
+              (*     let str = $cond$ in *)
+              (*     let $lid:off$ = $lid:off$ + $`int:i$ *)
+              (*     and $lid:len$ = $lid:len$ - $`int:i$ in *)
+              (*     match str with *)
+              (*     | $fpatt$ when true -> $expr$ *)
+              (*     | _ -> () *)
+              (*   ) *)
+              (* >> *)
 
           (* String, constant flen > 0. *)
           | P.String, Some i, None, _, _ when i > 0 && i land 7 = 0 ->
-              <:expr<
-                if $lid:len$ >= $`int:i$ then (
+              [%expr
+                if [%e Ast.evar len] >= [%e Ast.int i] then (
                   let str =
                     Bitstring.string_of_bitstring
-                      ($lid:data$, $lid:off$, $`int:i$) in
-                  let $lid:off$ = $lid:off$ + $`int:i$
-                  and $lid:len$ = $lid:len$ - $`int:i$ in
+                      ([%e Ast.evar data], [%e Ast.evar off], [%e Ast.int i]) in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.int i]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e Ast.int i] in
                   match str with
-                  | $fpatt$ when true -> $expr$
+                  | [%p fpatt] when true -> [%e expr]
                   | _ -> ()
-                )
-              >>
+                )]
+              (* <:expr< *)
+              (*   if $lid:len$ >= $`int:i$ then ( *)
+              (*     let str = *)
+              (*       Bitstring.string_of_bitstring *)
+              (*         ($lid:data$, $lid:off$, $`int:i$) in *)
+              (*     let $lid:off$ = $lid:off$ + $`int:i$ *)
+              (*     and $lid:len$ = $lid:len$ - $`int:i$ in *)
+              (*     match str with *)
+              (*     | $fpatt$ when true -> $expr$ *)
+              (*     | _ -> () *)
+              (*   ) *)
+              (* >> *)
 
           (* String, constant flen = -1, means consume all the
            * rest of the input.
@@ -810,16 +965,25 @@ let output_bitmatch loc bs cases =
           | P.String, Some i, _, _, _ when i = -1 ->
               let str = gensym "str" in
 
-              <:expr<
-                let $lid:str$ =
+              [%expr
+                let [%p Ast.pvar str] =
                   Bitstring.string_of_bitstring
-                    ($lid:data$, $lid:off$, $lid:len$) in
-                let $lid:off$ = $lid:off$ + $lid:len$ in
-                let $lid:len$ = 0 in
-                match $lid:str$ with
-                | $fpatt$ when true -> $expr$
-                | _ -> ()
-              >>
+                    ([%e Ast.evar data], [%e Ast.evar off], [%e Ast.evar len]) in
+                let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.evar len] in
+                let [%p Ast.pvar len] = 0 in
+                match [%e Ast.evar str] with
+                | [%p fpatt] when true -> [%e expr]
+                | _ -> ()]
+              (* <:expr< *)
+              (*   let $lid:str$ = *)
+              (*     Bitstring.string_of_bitstring *)
+              (*       ($lid:data$, $lid:off$, $lid:len$) in *)
+              (*   let $lid:off$ = $lid:off$ + $lid:len$ in *)
+              (*   let $lid:len$ = 0 in *)
+              (*   match $lid:str$ with *)
+              (*   | $fpatt$ when true -> $expr$ *)
+              (*   | _ -> () *)
+              (* >> *)
 
           | P.String, Some _, _, _, _ ->
               fail "length of string must be > 0 and a multiple of 8, or the special value -1"
@@ -829,17 +993,27 @@ let output_bitmatch loc bs cases =
            *)
           | P.String, None, _, _, _ ->
               let bs = gensym "bs" in
-              <:expr<
-                if $flen$ >= 0 && $flen$ <= $lid:len$
-                  && $flen$ land 7 = 0 then (
-                    let $lid:bs$ = ($lid:data$, $lid:off$, $flen$) in
-                    let $lid:off$ = $lid:off$ + $flen$
-                    and $lid:len$ = $lid:len$ - $flen$ in
-                    match Bitstring.string_of_bitstring $lid:bs$ with
-                    | $fpatt$ when true -> $expr$
-                    | _ -> ()
-                  )
-              >>
+              [%expr
+                if [%e flen] >= 0 && [%e flen] <= [%e Ast.evar len]
+                   && [%e flen] land 7 = 0 then (
+                  let [%p Ast.pvar bs] = ([%e Ast.evar data], [%e Ast.evar off], [%e flen]) in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e flen]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e flen] in
+                  match Bitstring.string_of_bitstring [%e Ast.evar bs] with
+                  | [%p fpatt] when true -> [%e expr]
+                  | _ -> ()
+                )]
+              (* <:expr< *)
+              (*   if $flen$ >= 0 && $flen$ <= $lid:len$ *)
+              (*     && $flen$ land 7 = 0 then ( *)
+              (*       let $lid:bs$ = ($lid:data$, $lid:off$, $flen$) in *)
+              (*       let $lid:off$ = $lid:off$ + $flen$ *)
+              (*       and $lid:len$ = $lid:len$ - $flen$ in *)
+              (*       match Bitstring.string_of_bitstring $lid:bs$ with *)
+              (*       | $fpatt$ when true -> $expr$ *)
+              (*       | _ -> () *)
+              (*     ) *)
+              (* >> *)
 
           (* Bitstring, constant flen >= 0.
            * At the moment all we can do is assign the bitstring to an
@@ -848,18 +1022,26 @@ let output_bitmatch loc bs cases =
           | P.Bitstring, Some i, _, _, _ when i >= 0 ->
               let ident =
                 match fpatt with
-                | <:patt< $lid:ident$ >> -> ident
-                | <:patt< _ >> -> "_"
+                | {ppat_desc = Ppat_var {txt = ident}} -> ident
+                | {ppat_desc = Ppat_any} -> "_"
                 | _ ->
                     fail "cannot compare a bitstring to a constant" in
-              <:expr<
-                if $lid:len$ >= $`int:i$ then (
-                  let $lid:ident$ = ($lid:data$, $lid:off$, $`int:i$) in
-                  let $lid:off$ = $lid:off$ + $`int:i$
-                  and $lid:len$ = $lid:len$ - $`int:i$ in
-                  $expr$
-                )
-              >>
+              [%expr
+                if [%e Ast.evar len] >= [%e Ast.int i] then (
+                  let [%p Ast.pvar ident] =
+                    ([%e Ast.evar data], [%e Ast.evar off], [%e Ast.int i]) in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.int i]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e Ast.int i] in
+                  [%e expr]
+                )]
+              (* <:expr< *)
+              (*   if $lid:len$ >= $`int:i$ then ( *)
+              (*     let $lid:ident$ = ($lid:data$, $lid:off$, $`int:i$) in *)
+              (*     let $lid:off$ = $lid:off$ + $`int:i$ *)
+              (*     and $lid:len$ = $lid:len$ - $`int:i$ in *)
+              (*     $expr$ *)
+              (*   ) *)
+              (* >> *)
 
           (* Bitstring, constant flen = -1, means consume all the
            * rest of the input.
@@ -867,16 +1049,22 @@ let output_bitmatch loc bs cases =
           | P.Bitstring, Some i, _, _, _ when i = -1 ->
               let ident =
                 match fpatt with
-                | <:patt< $lid:ident$ >> -> ident
-                | <:patt< _ >> -> "_"
+                | {ppat_desc = Ppat_var {txt = ident}} -> ident
+                | {ppat_desc = Ppat_any} -> "_"
                 | _ ->
                     fail "cannot compare a bitstring to a constant" in
-              <:expr<
-                let $lid:ident$ = ($lid:data$, $lid:off$, $lid:len$) in
-                let $lid:off$ = $lid:off$ + $lid:len$ in
-                let $lid:len$ = 0 in
-                  $expr$
-              >>
+              [%expr
+                let [%p Ast.pvar ident] =
+                  ([%e Ast.evar data], [%e Ast.evar off], [%e Ast.evar len]) in
+                let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.evar len] in
+                let [%p Ast.pvar len] = [%e Ast.int 0] in
+                [%e expr]]
+              (* <:expr< *)
+              (*   let $lid:ident$ = ($lid:data$, $lid:off$, $lid:len$) in *)
+              (*   let $lid:off$ = $lid:off$ + $lid:len$ in *)
+              (*   let $lid:len$ = 0 in *)
+              (*     $expr$ *)
+              (* >> *)
 
           | P.Bitstring, Some _, _, _, _ ->
               fail "length of bitstring must be >= 0 or the special value -1"
@@ -887,18 +1075,25 @@ let output_bitmatch loc bs cases =
           | P.Bitstring, None, _, _, _ ->
               let ident =
                 match fpatt with
-                | <:patt< $lid:ident$ >> -> ident
-                | <:patt< _ >> -> "_"
+                | {ppat_desc = Ppat_var {txt = ident}} -> ident
+                | {ppat_desc = Ppat_any} -> "_"
                 | _ ->
                     fail "cannot compare a bitstring to a constant" in
-              <:expr<
-                if $flen$ >= 0 && $flen$ <= $lid:len$ then (
-                  let $lid:ident$ = ($lid:data$, $lid:off$, $flen$) in
-                  let $lid:off$ = $lid:off$ + $flen$
-                  and $lid:len$ = $lid:len$ - $flen$ in
-                  $expr$
-                )
-              >>
+              [%expr
+                if [%e flen] >= 0 && [%e flen] <= [%e Ast.evar len] then (
+                  let [%p Ast.pvar ident] = ([%e Ast.evar data], [%e Ast.evar off], [%e flen]) in
+                  let [%p Ast.pvar off] = [%e Ast.evar off] + [%e flen]
+                  and [%p Ast.pvar len] = [%e Ast.evar len] - [%e flen] in
+                  [%e expr]
+                )]
+              (* <:expr< *)
+              (*   if $flen$ >= 0 && $flen$ <= $lid:len$ then ( *)
+              (*     let $lid:ident$ = ($lid:data$, $lid:off$, $flen$) in *)
+              (*     let $lid:off$ = $lid:off$ + $flen$ *)
+              (*     and $lid:len$ = $lid:len$ - $flen$ in *)
+              (*     $expr$ *)
+              (*   ) *)
+              (* >> *)
         in
 
         (* Computed offset: only offsets forward are supported.
@@ -938,11 +1133,15 @@ let output_bitmatch loc bs cases =
                    * constant amount, and a runtime test that len >= 0
                    * (XXX possibly the runtime test is unnecessary?)
                    *)
-                  <:expr<
-                    let $lid:off$ = $lid:off$ + $`int:move$ in
-                    let $lid:len$ = $lid:len$ - $`int:move$ in
-                    if $lid:len$ >= 0 then $expr$
-                  >>
+                  [%expr
+                    let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.int move] in
+                    let [%p Ast.pvar len] = [%e Ast.evar len] - [%e Ast.int move] in
+                    if [%e Ast.evar len] >= 0 then [%e expr]]
+                  (* <:expr< *)
+                  (*   let $lid:off$ = $lid:off$ + $`int:move$ in *)
+                  (*   let $lid:len$ = $lid:len$ - $`int:move$ in *)
+                  (*   if $lid:len$ >= 0 then $expr$ *)
+                  (* >> *)
               (* In any other case, we need to use runtime checks.
                *
                * XXX It's not clear if a backwards move detected at runtime
@@ -952,69 +1151,84 @@ let output_bitmatch loc bs cases =
                *)
               | _ ->
                   let move = gensym "move" in
-                  <:expr<
-                    let $lid:move$ =
-                      $offset_expr$ - ($lid:off$ - $lid:original_off$) in
-                    if $lid:move$ >= 0 then (
-                      let $lid:off$ = $lid:off$ + $lid:move$ in
-                      let $lid:len$ = $lid:len$ - $lid:move$ in
-                      if $lid:len$ >= 0 then $expr$
-                    )
-                  >> in (* end of computed offset code *)
+                  [%expr
+                    let [%p Ast.pvar move] =
+                      [%e offset_expr] - ([%e Ast.evar off] - [%e Ast.evar original_off]) in
+                    if [%e Ast.evar move] >= 0 then (
+                      let [%p Ast.pvar off] = [%e Ast.evar off] + [%e Ast.evar move] in
+                      let [%p Ast.pvar len] = [%e Ast.evar len] - [%e Ast.evar move] in
+                      if [%e Ast.evar len] >= 0 then [%e expr]
+                    )] in (* end of computed offset code *)
+                  (* <:expr< *)
+                  (*   let $lid:move$ = *)
+                  (*     $offset_expr$ - ($lid:off$ - $lid:original_off$) in *)
+                  (*   if $lid:move$ >= 0 then ( *)
+                  (*     let $lid:off$ = $lid:off$ + $lid:move$ in *)
+                  (*     let $lid:len$ = $lid:len$ - $lid:move$ in *)
+                  (*     if $lid:len$ >= 0 then $expr$ *)
+                  (*   ) *)
+                  (* >> in (\* end of computed offset code *\) *)
 
         (* save_offset_to(patt) saves the current offset into a variable. *)
         let expr =
           match P.get_save_offset_to field with
           | None -> expr (* no save_offset_to *)
           | Some patt ->
-              <:expr<
-                let $patt$ = $lid:off$ - $lid:original_off$ in
-                $expr$
-              >> in
+              [%expr
+                let [%p patt] = [%e Ast.evar off] - [%e Ast.evar original_off] in
+                [%e expr]] in
+              (* <:expr< *)
+              (*   let $patt$ = $lid:off$ - $lid:original_off$ in *)
+              (*   $expr$ *)
+              (* >> in *)
 
         (* Emit extra debugging code. *)
         let expr =
           if not debug then expr else (
             let field = P.string_of_pattern_field field in
 
-            <:expr<
+            [%expr
               if !Bitstring.debug then (
-                Printf.eprintf "PA_BITSTRING: TEST:\n";
-                Printf.eprintf "  %s\n" $str:field$;
-                Printf.eprintf "  off %d len %d\n%!" $lid:off$ $lid:len$;
+                Printf.eprintf "PPX_BITSTRING: TEST:\n";
+                Printf.eprintf "  %s\n" [%e Ast.str field];
+                Printf.eprintf "  off %d len %d\n%!" [%e Ast.evar off] [%e Ast.evar len];
                 (*Bitstring.hexdump_bitstring stderr
                   ($lid:data$,$lid:off$,$lid:len$);*)
               );
-              $expr$
-            >>
+              [%e expr]]
           ) in
+
+          (*   <:expr< *)
+          (*     if !Bitstring.debug then ( *)
+          (*       Printf.eprintf "PA_BITSTRING: TEST:\n"; *)
+          (*       Printf.eprintf "  %s\n" $str:field$; *)
+          (*       Printf.eprintf "  off %d len %d\n%!" $lid:off$ $lid:len$; *)
+          (*       (\*Bitstring.hexdump_bitstring stderr *)
+          (*         ($lid:data$,$lid:off$,$lid:len$);*\) *)
+          (*     ); *)
+          (*     $expr$ *)
+          (*   >> *)
+          (* ) in *)
 
         output_field_extraction expr fields
   in
-*)
+
   (* Convert each case in the match. *)
   let cases = List.map (
-    fun {pc_lhs; pc_guard; pc_rhs} -> (*  (fields, bind, whenclause, code) -> *)
-      let inner = [%expr result := Some [%e pc_rhs]; raise Exit] in
-        (* Exp.sequence *)
-        (*   (Ast.app (Ast.evar "result") [Ast.constr "Some" [pc_rhs]]) *)
-        (*   (Ast.app (Ast.evar "raise") [Ast.constr "Exit" []]) in *)
+    fun (fields, bind, whenclause, code) ->
+      let inner = [%expr result := Some [%e code]; raise Exit] in
       let inner =
-        match pc_guard with
+        match whenclause with
         | Some whenclause ->
             Exp.ifthenelse whenclause inner None
         | None -> inner in
       let inner =
-        match pc_lhs.ppat_desc with
-        | Ppat_alias (p, {txt = name}) -> (* Some name -> *)
+        match bind with
+        | Some name ->
             [%expr let name = data, original_off, original_len in [%e inner]]
-            (* Ast.let_in *)
-            (*   [Vb.mk *)
-            (*      (Ast.pvar "name") *)
-            (*      (Ast.tuple [Ast.evar "data"; Ast.evar "original_off"; Ast.evar "original_len"])] *)
-            (*   inner *)
-        | _ (* None *) -> inner in
-      output_field_extraction inner pc_lhs (* (List.rev fields) *)
+        | None -> inner in
+      (* let fields = patt_fields pc_lhs in *)
+      output_field_extraction inner [] (* (List.rev fields) *)
   ) cases in
 
   (* Join them into a single expression.
@@ -1038,9 +1252,7 @@ let output_bitmatch loc bs cases =
    * Match_failure with the location of the bitmatch
    * statement in the original code.
    *)
-  let loc_fname = loc.Location.loc_start.Lexing.pos_fname in
-  let loc_line = loc.Location.loc_start.Lexing.pos_lnum in
-  let loc_char = loc.Location.loc_start.Lexing.pos_cnum - loc.Location.loc_start.Lexing.pos_bol in
+  let loc_fname, loc_line, loc_char = Location.(get_pos_info loc.loc_start) in
 
   (* Note we save the original offset/length at the start of the match
    * in 'original_off'/'original_len' symbols.  'data' never changes.
@@ -1048,66 +1260,22 @@ let output_bitmatch loc bs cases =
    * aren't actually used, we don't get a warning.
    *)
   [%expr
-    let data, original_off, original_len = [%e bs] in
-    let off = original_off and len = original_len in
-    let off_aligned = off land 7 = 0 in
-    ignore off_aligned;
-    let result = ref None in
+    let ([%p Ast.pvar data], [%p Ast.pvar original_off], [%p Ast.pvar original_len]) = [%e bs] in
+    let [%p Ast.pvar off] = [%e Ast.evar original_off]
+    and [%p Ast.pvar len] = [%e Ast.evar original_len] in
+    let [%p Ast.pvar off_aligned] = [%e Ast.evar off] land 7 = 0 in
+    ignore [%e Ast.evar off_aligned];
+    let [%p Ast.pvar result] = ref None in
     (try
-       cases
+       [%e cases]
      with Exit -> ());
-    match !result with
+    match ![%e Ast.evar result] with
     | Some x -> x
     | None ->
         raise (Match_failure
                  ([%e Ast.str loc_fname], [%e Ast.int loc_line], [%e Ast.int loc_char]))]
 
-  (* Exp.let_in *)
-  (*   [Ast.ptuple [Ast.pvar "data"; Ast.pvar "original_off"; Ast.pvar "original_len"], bs] *)
-  (*   (Exp.let_in *)
-  (*      [Ast.pvar "off", Ast.evar "original_off"; Ast.pvar "len", Ast.evar "original_len"] *)
-  (*      (Exp.let_in *)
-  (*         [Ast.pvar "off_aligned", *)
-  (*          Ast.app (Ast.evar "=") *)
-  (*             [Ast.app (Ast.evar "land") [Ast.evar "off"; Ast.int 7]; Ast.int 0]] *)
-  (*         (Exp.let_in *)
-  (*            [Ast.pvar "result", Ast.app (Ast.evar "ref") [ Ast.constr "None" [] ] ] *)
-  (*            (Exp.sequence *)
-  (*               (Exp.try_ cases [Exp.case (Ast.pconstr "Exit" []) (Ast.unit ())]) *)
-  (*               (Exp.match_ *)
-  (*                  (Ast.app (Ast.evar "!") [Ast.evar "result"]) *)
-  (*                  [Exp.case (Ast.pconstr "Some" [Ast.pvar "x"]) (Ast.evar "x"); *)
-  (*                   Exp.case (Ast.pconstr "None" []) *)
-  (*                     (Ast.app (Ast.evar "raise") *)
-  (*                        (Ast.constr "Match_failure" *)
-  (*                           [Ast.str loc_fname; Ast.int loc_line; Ast.int loc_char]))]))))) *)
-
-  (* <:expr< *)
-  (*   let ($lid:data$, $lid:original_off$, $lid:original_len$) = $bs$ in *)
-  (*   let $lid:off$ = $lid:original_off$ and $lid:len$ = $lid:original_len$ in *)
-  (*   let $lid:off_aligned$ = $lid:off$ land 7 = 0 in *)
-  (*   ignore $lid:off_aligned$; *)
-  (*   let $lid:result$ = ref None in *)
-  (*   (try *)
-  (*     $cases$ *)
-  (*   with Exit -> ()); *)
-  (*   match ! $lid:result$ with *)
-  (*   | Some x -> x *)
-  (*   | None -> raise (Match_failure ($str:loc_fname$, *)
-  (*                                   $int:loc_line$, $int:loc_char$)) *)
-  (* >> *)
-
 (*
-(* Add a named pattern. *)
-let add_named_pattern _loc name pattern =
-  Hashtbl.add pattern_hash name pattern
-
-(* Expand a named pattern from the pattern_hash. *)
-let expand_named_pattern _loc name =
-  try Hashtbl.find pattern_hash name
-  with Not_found ->
-    locfail _loc (sprintf "named pattern not found: %s" name)
-
 (* Add named patterns from a file.  See the documentation on the
  * directory search path in bitstring_persistent.mli
  *)
@@ -1260,7 +1428,7 @@ let bitstring_mapper argv =
            Pexp_extension
              ({txt = "bitstring" }, PStr
                 [{pstr_desc = Pstr_eval ({pexp_desc = Pexp_match (bs, cases)}, _)}]) } ->
-          output_bitmatch expr.pexp_loc bs cases
+          output_bitmatch expr.pexp_loc bs (List.map patt_case cases)
       | other ->
           default_mapper.expr mapper other }
 

@@ -66,37 +66,30 @@ and alt =
  * Fairly simplistic algorithm: we can only detect simple constant
  * expressions such as [k], [k+c], [k-c] etc.
  *)
-let rec expr_is_constant e =
-  match e.pexp_desc with
-  | Pexp_constant (Const_int i) ->      (* Literal integer constant. *)
+let rec expr_is_constant = function
+  | {pexp_desc = Pexp_constant (Const_int i)} ->      (* Literal integer constant. *)
     Some i
-  | Pexp_apply
-      ({ pexp_desc = Pexp_ident { txt = Lident "+" } }, [_, a; _, b]) -> (* Addition of constants. *)
+  | [%expr [%e? a] + [%e? b]] -> (* Addition of constants. *)
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b -> Some (a+b)
      | _ -> None)
-  | Pexp_apply
-      ({ pexp_desc = Pexp_ident { txt = Lident "-" } }, [_, a; _, b]) -> (* Subtraction. *)
+  | [%expr [%e? a] - [%e? b]] -> (* Subtraction. *)
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b -> Some (a-b)
      | _ -> None)
-  | Pexp_apply
-      ({ pexp_desc = Pexp_ident { txt = Lident "*" } }, [_, a; _, b]) -> (* Multiplication. *)
+  | [%expr [%e? a] * [%e? b]] -> (* Multiplication. *)
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b -> Some (a*b)
      | _ -> None)
-  | Pexp_apply
-      ({ pexp_desc = Pexp_ident { txt = Lident "/" } }, [_, a; _, b]) -> (* Division. *)
+  | [%expr [%e? a] / [%e? b]] -> (* Division. *)
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b -> Some (a/b)
      | _ -> None)
-  | Pexp_apply
-      ({ pexp_desc = Pexp_ident { txt = Lident "lsl" } }, [_, a; _, b]) -> (* Shift left. *)
+  | [%expr [%e? a] lsl [%e? b]] -> (* Shift left. *)
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b -> Some (a lsl b)
      | _ -> None)
-  | Pexp_apply
-      ({ pexp_desc = Pexp_ident { txt = Lident "lsr" } }, [_, a; _, b]) -> (* Shift right. *)
+  | [%expr [%e? a] lsr [%e? b]] -> (* Shift right. *)
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b -> Some (a lsr b)
      | _ -> None)
