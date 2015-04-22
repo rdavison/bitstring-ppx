@@ -777,19 +777,15 @@ let output_bitmatch loc bs cases =
                       [%expr [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o]
                       (* <:expr< Bitstring.$lid:name$ $lid:data$ o >> *)
                   | 32 ->
-                      (* must allocate a new zero each time *)
                       [%expr
-                        let zero = Int32.of_int 0 in
-                        [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o zero]
+                        [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o]
                       (* <:expr< *)
                       (*   let zero = Int32.of_int 0 in *)
                       (*   Bitstring.$lid:name$ $lid:data$ o zero *)
                       (* >> *)
                   | 64 ->
-                      (* must allocate a new zero each time *)
                       [%expr
-                        let zero = Int64.of_int 0 in
-                        [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o zero]
+                        [%e Ast.evar ("Bitstring." ^ name)] [%e Ast.evar data] o]
                       (* <:expr< *)
                       (*   let zero = Int64.of_int 0 in *)
                       (*   Bitstring.$lid:name$ $lid:data$ o zero *)
@@ -1225,7 +1221,7 @@ let output_bitmatch loc bs cases =
   (* Convert each case in the match. *)
   let cases = List.map (
     fun (fields, bind, whenclause, code) ->
-      let inner = [%expr result := Some [%e code]; raise Exit] in
+      let inner = [%expr [%e Ast.evar result] := Some [%e code]; raise Exit] in
       let inner =
         match whenclause with
         | Some whenclause ->
@@ -1234,7 +1230,10 @@ let output_bitmatch loc bs cases =
       let inner =
         match bind with
         | Some name ->
-            [%expr let name = data, original_off, original_len in [%e inner]]
+            [%expr
+              let [%p Ast.pvar name] =
+                ([%e Ast.evar data], [%e Ast.evar original_off], [%e Ast.evar original_len]) in
+              [%e inner]]
         | None -> inner in
       output_field_extraction inner (List.rev fields)
   ) cases in
