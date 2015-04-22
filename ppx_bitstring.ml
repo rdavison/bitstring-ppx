@@ -26,6 +26,7 @@ open Ast_helper
 
 open Printf
 open Bitstring
+module P = Bitstring_persistent
 
 (*
 open Camlp4.PreCast
@@ -75,6 +76,7 @@ let rec expr_is_constant = function
          (try Some ((List.assoc op ops) a b) with Not_found -> None)
      | _ -> None)
   | _ -> None
+*)
 
 (* Generate a fresh, unique symbol each time called. *)
 let gensym =
@@ -83,6 +85,7 @@ let gensym =
     incr i; let i = !i in
     sprintf "__pabitstring_%s_%d" name i
 
+(*
 (* Used to keep track of which qualifiers we've seen in parse_field. *)
 type whatset_t = {
   endian_set : bool; signed_set : bool; type_set : bool;
@@ -471,8 +474,8 @@ let output_bitmatch _loc bs cases =
    *   off_aligned  - true if the original offset is byte-aligned (allows
    *            us to make some common optimizations)
    *)
-  assert false
-    (*
+assert false
+(*
   let data = gensym "data"
   and off = gensym "off"
   and len = gensym "len"

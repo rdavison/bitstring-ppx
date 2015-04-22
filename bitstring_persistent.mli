@@ -260,10 +260,10 @@ v}
    {3 Types}
 *)
 
-type patt = Camlp4.PreCast.Syntax.Ast.patt
-type expr = Camlp4.PreCast.Syntax.Ast.expr
-type loc_t = Camlp4.PreCast.Syntax.Ast.Loc.t
-(** Just short names for the camlp4 types. *)
+type patt = Parsetree.pattern
+type expr = Parsetree.expression
+type loc_t = Location.t
+(** Just short names for the ast types. *)
 
 type 'a field
 (** A field in a persistent pattern or persistent constructor. *)

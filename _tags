@@ -1,3 +1,4 @@
+<bitstring_persistent.*>: package(compiler-libs.common)
 <ppx_bitstring.*>: package(compiler-libs.common), package(unix)
 <bitstring_c.*>: endianness
 <bitstring.*>: bitstring_c, package(unix)
