@@ -24,6 +24,8 @@ open Parsetree
 open Ast_mapper
 open Ast_helper
 
+module Ast = Ast_convenience
+
 open Printf
 open Bitstring
 module P = Bitstring_persistent
@@ -457,7 +459,7 @@ let output_constructor _loc fields =
  * location, 'bs' is the bitstring parameter, 'cases' are
  * the list of cases to test against.
  *)
-let output_bitmatch _loc bs cases =
+let output_bitmatch loc bs cases =
   (* These symbols are used through the generated code to record our
    * current position within the bitstring:
    *
@@ -473,9 +475,8 @@ let output_bitmatch _loc bs cases =
    *   original_len - saved length at the start of the match (never changes)
    *   off_aligned  - true if the original offset is byte-aligned (allows
    *            us to make some common optimizations)
-   *)
-assert false
-(*
+  *)
+
   let data = gensym "data"
   and off = gensym "off"
   and len = gensym "len"
@@ -496,6 +497,8 @@ assert false
    * The whole thing is a lot of nested 'if'/'match' statements.
    * Code is generated from the inner-most (last) field outwards.
    *)
+  let output_field_extraction inner _ = [%expr assert false] in
+(*
   let rec output_field_extraction inner = function
     | [] -> inner
     | field :: fields ->
@@ -988,26 +991,30 @@ assert false
 
         output_field_extraction expr fields
   in
-
+*)
   (* Convert each case in the match. *)
   let cases = List.map (
-    fun (fields, bind, whenclause, code) ->
-      let inner = <:expr< $lid:result$ := Some ($code$); raise Exit >> in
+    fun {pc_lhs; pc_guard; pc_rhs} -> (*  (fields, bind, whenclause, code) -> *)
+      let inner = [%expr result := Some [%e pc_rhs]; raise Exit] in
+        (* Exp.sequence *)
+        (*   (Ast.app (Ast.evar "result") [Ast.constr "Some" [pc_rhs]]) *)
+        (*   (Ast.app (Ast.evar "raise") [Ast.constr "Exit" []]) in *)
       let inner =
-        match whenclause with
+        match pc_guard with
         | Some whenclause ->
-            <:expr< if $whenclause$ then $inner$ >>
+            Exp.ifthenelse whenclause inner None
         | None -> inner in
       let inner =
-        match bind with
-        | Some name ->
-            <:expr<
-              let $lid:name$ = ($lid:data$,
-                                $lid:original_off$, $lid:original_len$) in
-              $inner$
-              >>
-        | None -> inner in
-      output_field_extraction inner (List.rev fields)
+        match pc_lhs.ppat_desc with
+        | Ppat_alias (p, {txt = name}) -> (* Some name -> *)
+            [%expr let name = data, original_off, original_len in [%e inner]]
+            (* Ast.let_in *)
+            (*   [Vb.mk *)
+            (*      (Ast.pvar "name") *)
+            (*      (Ast.tuple [Ast.evar "data"; Ast.evar "original_off"; Ast.evar "original_len"])] *)
+            (*   inner *)
+        | _ (* None *) -> inner in
+      output_field_extraction inner pc_lhs (* (List.rev fields) *)
   ) cases in
 
   (* Join them into a single expression.
@@ -1020,7 +1027,7 @@ assert false
    *)
   let cases = List.rev cases in
   let cases =
-    List.fold_left (fun base case -> <:expr< $case$ ; $base$ >>)
+    List.fold_left (fun base case -> Exp.sequence case base)
       (List.hd cases) (List.tl cases) in
 
   (* The final code just wraps the list of cases in a
@@ -1031,30 +1038,66 @@ assert false
    * Match_failure with the location of the bitmatch
    * statement in the original code.
    *)
-  let loc_fname = Loc.file_name _loc in
-  let loc_line = string_of_int (Loc.start_line _loc) in
-  let loc_char = string_of_int (Loc.start_off _loc - Loc.start_bol _loc) in
+  let loc_fname = loc.Location.loc_start.Lexing.pos_fname in
+  let loc_line = loc.Location.loc_start.Lexing.pos_lnum in
+  let loc_char = loc.Location.loc_start.Lexing.pos_cnum - loc.Location.loc_start.Lexing.pos_bol in
 
-  <:expr<
-    (* Note we save the original offset/length at the start of the match
-     * in 'original_off'/'original_len' symbols.  'data' never changes.
-     * This code also ensures that if original_off/original_len/off_aligned
-     * aren't actually used, we don't get a warning.
-     *)
-    let ($lid:data$, $lid:original_off$, $lid:original_len$) = $bs$ in
-    let $lid:off$ = $lid:original_off$ and $lid:len$ = $lid:original_len$ in
-    let $lid:off_aligned$ = $lid:off$ land 7 = 0 in
-    ignore $lid:off_aligned$;
-    let $lid:result$ = ref None in
+  (* Note we save the original offset/length at the start of the match
+   * in 'original_off'/'original_len' symbols.  'data' never changes.
+   * This code also ensures that if original_off/original_len/off_aligned
+   * aren't actually used, we don't get a warning.
+   *)
+  [%expr
+    let data, original_off, original_len = [%e bs] in
+    let off = original_off and len = original_len in
+    let off_aligned = off land 7 = 0 in
+    ignore off_aligned;
+    let result = ref None in
     (try
-      $cases$
-    with Exit -> ());
-    match ! $lid:result$ with
+       cases
+     with Exit -> ());
+    match !result with
     | Some x -> x
-    | None -> raise (Match_failure ($str:loc_fname$,
-                                    $int:loc_line$, $int:loc_char$))
-  >>
+    | None ->
+        raise (Match_failure
+                 ([%e Ast.str loc_fname], [%e Ast.int loc_line], [%e Ast.int loc_char]))]
 
+  (* Exp.let_in *)
+  (*   [Ast.ptuple [Ast.pvar "data"; Ast.pvar "original_off"; Ast.pvar "original_len"], bs] *)
+  (*   (Exp.let_in *)
+  (*      [Ast.pvar "off", Ast.evar "original_off"; Ast.pvar "len", Ast.evar "original_len"] *)
+  (*      (Exp.let_in *)
+  (*         [Ast.pvar "off_aligned", *)
+  (*          Ast.app (Ast.evar "=") *)
+  (*             [Ast.app (Ast.evar "land") [Ast.evar "off"; Ast.int 7]; Ast.int 0]] *)
+  (*         (Exp.let_in *)
+  (*            [Ast.pvar "result", Ast.app (Ast.evar "ref") [ Ast.constr "None" [] ] ] *)
+  (*            (Exp.sequence *)
+  (*               (Exp.try_ cases [Exp.case (Ast.pconstr "Exit" []) (Ast.unit ())]) *)
+  (*               (Exp.match_ *)
+  (*                  (Ast.app (Ast.evar "!") [Ast.evar "result"]) *)
+  (*                  [Exp.case (Ast.pconstr "Some" [Ast.pvar "x"]) (Ast.evar "x"); *)
+  (*                   Exp.case (Ast.pconstr "None" []) *)
+  (*                     (Ast.app (Ast.evar "raise") *)
+  (*                        (Ast.constr "Match_failure" *)
+  (*                           [Ast.str loc_fname; Ast.int loc_line; Ast.int loc_char]))]))))) *)
+
+  (* <:expr< *)
+  (*   let ($lid:data$, $lid:original_off$, $lid:original_len$) = $bs$ in *)
+  (*   let $lid:off$ = $lid:original_off$ and $lid:len$ = $lid:original_len$ in *)
+  (*   let $lid:off_aligned$ = $lid:off$ land 7 = 0 in *)
+  (*   ignore $lid:off_aligned$; *)
+  (*   let $lid:result$ = ref None in *)
+  (*   (try *)
+  (*     $cases$ *)
+  (*   with Exit -> ()); *)
+  (*   match ! $lid:result$ with *)
+  (*   | Some x -> x *)
+  (*   | None -> raise (Match_failure ($str:loc_fname$, *)
+  (*                                   $int:loc_line$, $int:loc_char$)) *)
+  (* >> *)
+
+(*
 (* Add a named pattern. *)
 let add_named_pattern _loc name pattern =
   Hashtbl.add pattern_hash name pattern
@@ -1213,13 +1256,13 @@ let bitstring_mapper argv =
   { default_mapper with
     expr = fun mapper expr ->
       match expr with
-      | { pexp_desc =
-            Pexp_extension
-              ({ txt = "bitstringring" }, PStr
-                 [{ pstr_desc = Pstr_eval ({ pexp_desc = Pexp_match (bs, cases) }, _) }]) } ->
-        output_bitmatch expr.pexp_loc bs cases
+      | {pexp_desc =
+           Pexp_extension
+             ({txt = "bitstring" }, PStr
+                [{pstr_desc = Pstr_eval ({pexp_desc = Pexp_match (bs, cases)}, _)}]) } ->
+          output_bitmatch expr.pexp_loc bs cases
       | other ->
-        default_mapper.expr mapper other }
+          default_mapper.expr mapper other }
 
 let () =
   Ast_mapper.register "ppx_bitstring" bitstring_mapper
