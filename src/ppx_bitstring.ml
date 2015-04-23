@@ -316,35 +316,35 @@ let build_bitstring_call _loc functype length endian signed =
           let call = sprintf "%s_%s_%s_%s" funcname t "ee" sign in
           Ast.app (Ast.evar ("Bitstring." ^ call)) [expr]
 
-(*
 (* Generate the code for a constructor, ie. 'BITSTRING ...'. *)
-let output_constructor _loc fields =
+let output_constructor loc fields =
   (* This function makes code to raise a Bitstring.Construct_failure exception
-   * containing a message and the current _loc context.
+   * containing a message and the current loc context.
    * (Thanks to Bluestorm for suggesting this).
-   *)
-  let construct_failure _loc msg =
-    <:expr<
+  *)
+  let construct_failure loc msg =
+    let file_name, start_line, start_off =
+      Location.get_pos_info loc.Location.loc_start in
+    [%expr
       Bitstring.Construct_failure
-        ($`str:msg$,
-         $`str:Loc.file_name _loc$,
-         $`int:Loc.start_line _loc$,
-         $`int:Loc.start_off _loc - Loc.start_bol _loc$)
-    >>
+        ([%e Ast.str msg],
+         [%e Ast.str file_name],
+         [%e Ast.int start_line],
+         [%e Ast.int start_off])]
   in
-  let raise_construct_failure _loc msg =
-    <:expr< raise $construct_failure _loc msg$ >>
+  let raise_construct_failure loc msg =
+    [%expr raise [%e construct_failure loc msg]]
   in
 
   (* Bitstrings are created like the 'Buffer' module (in fact, using
    * the Buffer module), by appending snippets to a growing buffer.
    * This is reasonably efficient and avoids a lot of garbage.
-   *)
+  *)
   let buffer = gensym "buffer" in
 
   (* General exception which is raised inside the constructor functions
    * when an int expression is out of range at runtime.
-   *)
+  *)
   let exn = gensym "exn" in
   let exn_used = ref false in
 
@@ -368,7 +368,7 @@ let output_constructor _loc fields =
        * padding here and add it to what has been constructed.  For
        * general offsets, including going backwards, that would require
        * a rethink in how we construct bitstrings.
-       *)
+      *)
       if P.get_offset field <> None then
         fail "offset expressions are not supported in BITSTRING constructors";
       if P.get_check field <> None then
@@ -380,7 +380,7 @@ let output_constructor _loc fields =
 
       (* Is flen an integer constant?  If so, what is it?  This
        * is very simple-minded and only detects simple constants.
-       *)
+      *)
       let flen_is_const = expr_is_constant flen in
 
       let int_construct_const (i, endian, signed) =
@@ -395,14 +395,14 @@ let output_constructor _loc fields =
          * Range checks are done inside the construction function
          * because that's a lot simpler w.r.t. types.  It might
          * be better to move them here. XXX
-         *)
+        *)
         | P.Int, Some i when i > 0 && i <= 64 ->
             let construct_fn = int_construct_const (i,endian,signed) in
             exn_used := true;
 
-            <:expr<
-              $construct_fn$ $lid:buffer$ $fexpr$ $`int:i$ $lid:exn$
-            >>
+            [%expr
+              [%e construct_fn] [%e Ast.evar buffer] [%e fexpr]
+                [%e Ast.int i] [%e Ast.evar exn]]
 
         | P.Int, Some _ ->
             fail "length of int field must be [1..64]"
@@ -413,80 +413,76 @@ let output_constructor _loc fields =
          * Range checks are done inside the construction function
          * because that's a lot simpler w.r.t. types.  It might
          * be better to move them here. XXX
-         *)
+        *)
         | P.Int, None ->
             let construct_fn = int_construct (endian,signed) in
             exn_used := true;
 
-            <:expr<
-              if $flen$ >= 1 && $flen$ <= 64 then
-                $construct_fn$ $lid:buffer$ $fexpr$ $flen$ $lid:exn$
+            [%expr
+              if [%e flen] >= 1 && [%e flen] <= 64 then
+                [%e construct_fn] [%e Ast.evar buffer] [%e fexpr] [%e flen] [%e Ast.evar exn]
               else
-                $raise_construct_failure _loc "length of int field must be [1..64]"$
-            >>
+                [%e raise_construct_failure loc "length of int field must be [1..64]"]]
 
         (* String, constant length > 0, must be a multiple of 8. *)
         | P.String, Some i when i > 0 && i land 7 = 0 ->
             let bs = gensym "bs" in
             let j = i lsr 3 in
-            <:expr<
-              let $lid:bs$ = $fexpr$ in
-              if String.length $lid:bs$ = $`int:j$ then
-                Bitstring.construct_string $lid:buffer$ $lid:bs$
+            [%expr
+              let [%p Ast.pvar bs] = [%e fexpr] in
+              if String.length [%e Ast.evar bs] = [%e Ast.int j] then
+                Bitstring.construct_string [%e Ast.evar buffer] [%e Ast.evar bs]
               else
-                $raise_construct_failure _loc "length of string does not match declaration"$
-            >>
+                [%e raise_construct_failure loc "length of string does not match declaration"]]
 
         (* String, constant length -1, means variable length string
          * with no checks.
-         *)
+        *)
         | P.String, Some (-1) ->
-            <:expr< Bitstring.construct_string $lid:buffer$ $fexpr$ >>
+            [%expr Bitstring.construct_string [%e Ast.evar buffer] [%e fexpr]]
 
         (* String, constant length = 0 is probably an error, and so is
          * any other value.
-         *)
+        *)
         | P.String, Some _ ->
             fail "length of string must be > 0 and a multiple of 8, or the special value -1"
 
         (* String, non-constant length.
          * We check at runtime that the length is > 0, a multiple of 8,
          * and matches the declared length.
-         *)
+        *)
         | P.String, None ->
             let bslen = gensym "bslen" in
             let bs = gensym "bs" in
-            <:expr<
-              let $lid:bslen$ = $flen$ in
-              if $lid:bslen$ > 0 then (
-                if $lid:bslen$ land 7 = 0 then (
-                  let $lid:bs$ = $fexpr$ in
-                  if String.length $lid:bs$ = ($lid:bslen$ lsr 3) then
-                    Bitstring.construct_string $lid:buffer$ $lid:bs$
+            [%expr
+              let [%p Ast.pvar bslen] = [%e flen] in
+              if [%e Ast.evar bslen] > 0 then (
+                if [%e Ast.evar bslen] land 7 = 0 then (
+                  let [%p Ast.pvar bs] = [%e fexpr] in
+                  if String.length [%e Ast.evar bs] = ([%e Ast.evar bslen] lsr 3) then
+                    Bitstring.construct_string [%e Ast.evar buffer] [%e Ast.evar bs]
                   else
-                    $raise_construct_failure _loc "length of string does not match declaration"$
+                    [%e raise_construct_failure loc "length of string does not match declaration"]
                 ) else
-                  $raise_construct_failure _loc "length of string must be a multiple of 8"$
+                  [%e raise_construct_failure loc "length of string must be a multiple of 8"]
               ) else
-                $raise_construct_failure _loc "length of string must be > 0"$
-            >>
+                [%e raise_construct_failure loc "length of string must be > 0"]]
 
         (* Bitstring, constant length >= 0. *)
         | P.Bitstring, Some i when i >= 0 ->
             let bs = gensym "bs" in
-            <:expr<
-              let $lid:bs$ = $fexpr$ in
-              if Bitstring.bitstring_length $lid:bs$ = $`int:i$ then
-                Bitstring.construct_bitstring $lid:buffer$ $lid:bs$
+            [%expr
+              let [%p Ast.pvar bs] = [%e fexpr] in
+              if Bitstring.bitstring_length [%e Ast.evar bs] = [%e Ast.int i] then
+                Bitstring.construct_bitstring [%e Ast.evar buffer] [%e Ast.evar bs]
               else
-                $raise_construct_failure _loc "length of bitstring does not match declaration"$
-            >>
+                [%e raise_construct_failure loc "length of bitstring does not match declaration"]]
 
         (* Bitstring, constant length -1, means variable length bitstring
          * with no checks.
-         *)
+        *)
         | P.Bitstring, Some (-1) ->
-            <:expr< Bitstring.construct_bitstring $lid:buffer$ $fexpr$ >>
+            [%expr Bitstring.construct_bitstring [%e Ast.evar buffer] [%e fexpr]]
 
         (* Bitstring, constant length < -1 is an error. *)
         | P.Bitstring, Some _ ->
@@ -495,21 +491,20 @@ let output_constructor _loc fields =
         (* Bitstring, non-constant length.
          * We check at runtime that the length is >= 0 and matches
          * the declared length.
-         *)
+        *)
         | P.Bitstring, None ->
             let bslen = gensym "bslen" in
             let bs = gensym "bs" in
-            <:expr<
-              let $lid:bslen$ = $flen$ in
-              if $lid:bslen$ >= 0 then (
-                let $lid:bs$ = $fexpr$ in
-                if Bitstring.bitstring_length $lid:bs$ = $lid:bslen$ then
-                  Bitstring.construct_bitstring $lid:buffer$ $lid:bs$
+            [%expr
+              let [%p Ast.pvar bslen] = [%e flen] in
+              if [%e Ast.evar bslen] >= 0 then (
+                let [%p Ast.pvar bs] = [%e fexpr] in
+                if Bitstring.bitstring_length [%e Ast.evar bs] = [%e Ast.evar bslen] then
+                  Bitstring.construct_bitstring [%e Ast.evar buffer] [%e Ast.evar bs]
                 else
-                  $raise_construct_failure _loc "length of bitstring does not match declaration"$
+                  [%e raise_construct_failure loc "length of bitstring does not match declaration"]
               ) else
-                $raise_construct_failure _loc "length of bitstring must be > 0"$
-            >> in
+                [%e raise_construct_failure loc "length of bitstring must be > 0"]] in
       expr
   ) fields in
 
@@ -520,27 +515,24 @@ let output_constructor _loc fields =
    *
    * XXX We almost have enough information to be able to guess
    * a good initial size for the buffer.
-   *)
+  *)
   let fields =
     match fields with
-    | [] -> <:expr< [] >>
-    | h::t -> List.fold_left (fun h t -> <:expr< $h$; $t$ >>) h t in
+    | [] -> Ast.nil ()
+    | h::t -> List.fold_left Ast.cons h t in
 
   let expr =
-    <:expr<
-      let $lid:buffer$ = Bitstring.Buffer.create () in
-      $fields$;
-      Bitstring.Buffer.contents $lid:buffer$
-    >> in
+    [%expr
+      let [%p Ast.pvar buffer] = Bitstring.Buffer.create () in
+      [%e fields];
+      Bitstring.Buffer.contents [%e Ast.evar buffer]] in
 
   if !exn_used then
-    <:expr<
-      let $lid:exn$ = $construct_failure _loc "value out of range"$ in
-      $expr$
-    >>
+    [%expr
+      let [%p Ast.pvar exn] = [%e construct_failure loc "value out of range"] in
+      [%e expr]]
   else
     expr
-*)
 
 (* Generate the code for a bitmatch statement.  '_loc' is the
  * location, 'bs' is the bitstring parameter, 'cases' are
@@ -1234,7 +1226,6 @@ EXTEND Gram
         output_bitmatch _loc bs cases
     ]
 
-  (* Constructor. *)
   | [ "BITSTRING";
       fields = constr_fields ->
         output_constructor _loc fields
@@ -1256,6 +1247,9 @@ EXTEND Gram
 END
 *)
 
+let constr_fields loc fields =
+  assert false
+
 (* Named persistent patterns.
  *
  * NB: Currently only allowed at the top level.  We can probably lift
@@ -1266,8 +1260,7 @@ END
 let structure_item mapper = function
   | {pstr_desc =
        Pstr_extension
-         (({txt = "bitstring"},
-           PStr
+         (({txt = "bitstring"}, PStr
              [{pstr_desc =
                  Pstr_value
                    (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = name}};
@@ -1279,14 +1272,22 @@ let structure_item mapper = function
   | other ->
       default_mapper.structure_item mapper other
 
-(* 'bitmatch' expressions. *)
 let expr mapper = function
+  (* 'bitmatch' expressions. *)
   | {pexp_desc =
        Pexp_extension
-         ({txt = "bitstring" }, PStr
+         ({txt = "bitstring"}, PStr
             [{pstr_desc = Pstr_eval ({pexp_desc = Pexp_match (bs, cases)}, _)}]);
      pexp_loc = loc} ->
       output_bitmatch loc bs (List.map patt_case cases)
+  (* Constructor. *)
+  | {pexp_desc =
+       Pexp_extension
+         ({txt = "bitstring"}, PStr
+            [{pstr_desc =
+                Pstr_eval ({pexp_desc = Pexp_constant (Const_string (fields, Some ""))}, _)}]);
+     pexp_loc = loc} ->
+      output_constructor loc (constr_fields loc fields)
   | other ->
       default_mapper.expr mapper other
 
