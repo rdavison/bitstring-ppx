@@ -21,17 +21,17 @@ let payload_length = (length - hdrlen*4) * 8
 let payload = Bitstring.create_bitstring payload_length
 
 let header =
-  BITSTRING {
-    version : 4; hdrlen : 4; tos : 8; length : 16;
-    identification : 16; flags : 3; fragoffset : 13;
-    ttl : 8; protocol : 8; checksum : 16;
-    source : 32;
-    dest : 32
+  [%bitstring
+    version [@l 4], hdrlen [@l 4], tos [@l 8], length [@l 16],
+    identification [@l 16], flags [@l 3], fragoffset [@l 13],
+    ttl [@l 8], protocol [@l 8], checksum [@l 16],
+    source [@l 32],
+    dest [@l 32]
 (*
   Not implemented at the moment XXX
     options : -1 : bitstring;
     payload : payload_length : bitstring
 *)
-  }
+  ]
 
 let () = Bitstring.bitstring_to_file header "ipv4_header_out.dat"

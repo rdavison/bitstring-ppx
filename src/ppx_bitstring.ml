@@ -213,6 +213,14 @@ let parse_field loc field qs =
  * followed by an optional expression (used in certain cases).  Note
  * that we are careful not to declare any explicit reserved words.
  *)
+let qualifier = function
+  | ({txt = name}, PStr [{pstr_desc = Pstr_eval (e, _)}]) ->
+      (name, Some e)
+  | ({txt = name}, PStr []) ->
+      (name, None)
+  | ({loc}, _) ->
+      Location.raise_errorf ~loc "bitstring: bad qualifier"
+
 (* let qualifier = function *)
 (*   | {pexp_desc = Pexp_ident {txt = Lident q}} -> (q, None) *)
 (*   | {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident q}}, [_, e])} -> (q, Some e) *)
@@ -228,14 +236,7 @@ let patt_field fpatt =
   let len, qs =
     match fpatt.ppat_attributes with
     | ({txt = "l"}, PStr [{pstr_desc = Pstr_eval (len, _)}]) :: qs ->
-        let qs =
-          List.map (function
-            | ({txt = name}, PStr [{pstr_desc = Pstr_eval (e, _)}]) ->
-                (name, Some e)
-            | ({txt = name}, PStr []) ->
-                (name, None)
-            | ({loc}, _) ->
-                Location.raise_errorf ~loc "bitstring: bad qualifier") qs in
+        let qs = List.map qualifier qs in
         len, qs
     | _ ->
         Location.raise_errorf ~loc "bitstring: missing length"
@@ -529,8 +530,8 @@ let output_constructor loc fields =
   *)
   let fields =
     match fields with
-    | [] -> Ast.nil ()
-    | h::t -> List.fold_left Ast.cons h t in
+    | [] -> Ast.unit ()
+    | h::t -> List.fold_left Exp.sequence h t in
 
   let expr =
     [%expr
@@ -1258,8 +1259,25 @@ EXTEND Gram
 END
 *)
 
-let constr_fields loc fields =
-  assert false
+let constr_field fexpr =
+  let loc = fexpr.pexp_loc in
+  let len, qs =
+    match fexpr.pexp_attributes with
+    | ({txt = "l"}, PStr [{pstr_desc = Pstr_eval (len, _)}]) :: qs ->
+        let qs = List.map qualifier qs in
+        len, qs
+    | _ ->
+        Location.raise_errorf ~loc "bitstring: missing length in constructor" in
+  let field = P.create_constructor_field loc in
+  let field = P.set_expr field fexpr in
+  let field = P.set_length field len in
+  parse_field loc field qs
+
+let constr_fields = function
+  | {pexp_desc = Pexp_tuple fields} ->
+      List.map constr_field fields
+  | field ->
+      [constr_field field]
 
 (* Named persistent patterns.
  *
@@ -1293,12 +1311,9 @@ let expr mapper = function
       output_bitmatch loc bs (List.map patt_case cases)
   (* Constructor. *)
   | {pexp_desc =
-       Pexp_extension
-         ({txt = "bitstring"}, PStr
-            [{pstr_desc =
-                Pstr_eval ({pexp_desc = Pexp_constant (Const_string (fields, Some ""))}, _)}]);
+       Pexp_extension ({txt = "bitstring"}, PStr [{pstr_desc = Pstr_eval (fields, _)}]);
      pexp_loc = loc} ->
-      output_constructor loc (constr_fields loc fields)
+      output_constructor loc (constr_fields fields)
   | other ->
       default_mapper.expr mapper other
 
