@@ -106,82 +106,79 @@ let parse_field loc field qs =
   let fail = locfail loc in
 
   let whatset, field =
-    match qs with
-    | None -> noneset, field
-    | Some qs ->
-        let check already_set msg = if already_set then fail msg in
-        let apply_qualifier (whatset, field) =
-          function
-          | "endian", Some expr ->
-              check whatset.endian_set "an endian flag has been set already";
-              let field = P.set_endian_expr field expr in
-              { whatset with endian_set = true }, field
-          | "endian", None ->
-              fail "qualifier 'endian' should be followed by an expression"
-          | "offset", Some expr ->
-              check whatset.offset_set "an offset has been set already";
-              let field = P.set_offset field expr in
-              { whatset with offset_set = true }, field
-          | "offset", None ->
-              fail "qualifier 'offset' should be followed by an expression"
-          | "check", Some expr ->
-              check whatset.check_set "a check-qualifier has been set already";
-              let field = P.set_check field expr in
-              { whatset with check_set = true }, field
-          | "check", None ->
-              fail "qualifier 'check' should be followed by an expression"
-          | "bind", Some expr ->
-              check whatset.bind_set "a bind expression has been set already";
-              let field = P.set_bind field expr in
-              { whatset with bind_set = true }, field
-          | "bind", None ->
-              fail "qualifier 'bind' should be followed by an expression"
-          | "save_offset_to", Some expr (* XXX should be a pattern *) ->
-              check whatset.save_offset_to_set
-                "a save_offset_to-qualifier has been set already";
-              let id =
-                match expr with
-                | {pexp_desc = Pexp_ident {txt = Lident id}} -> id
-                | _ ->
-                    failwith "pa_bitstring: internal error: save_offset_to only supports simple identifiers at the moment.  In future we should support full patterns." in
-              let field = P.set_save_offset_to_lident field id in
-              { whatset with save_offset_to_set = true }, field
-          | "save_offset_to", None ->
-              fail "qualifier 'save_offset_to' should be followed by a binding expression"
-          | s, Some _ ->
-              fail (s ^ ": unknown qualifier, or qualifier should not be followed by an expression")
-          | qual, None ->
-              let endian_quals = ["bigendian", BigEndian;
-                                  "littleendian", LittleEndian;
-                                  "nativeendian", NativeEndian] in
-              let sign_quals = ["signed", true; "unsigned", false] in
-              let type_quals = ["int", P.set_type_int;
-                                "string", P.set_type_string;
-                                "bitstring", P.set_type_bitstring] in
-              if List.mem_assoc qual endian_quals then (
-                check whatset.endian_set "an endian flag has been set already";
-                let field = P.set_endian field (List.assoc qual endian_quals) in
-                { whatset with endian_set = true }, field
-              ) else if List.mem_assoc qual sign_quals then (
-                check whatset.signed_set "a signed flag has been set already";
-                let field = P.set_signed field (List.assoc qual sign_quals) in
-                { whatset with signed_set = true }, field
-              ) else if List.mem_assoc qual type_quals then (
-                check whatset.type_set "a type flag has been set already";
-                let field = (List.assoc qual type_quals) field in
-                { whatset with type_set = true }, field
-              ) else
-                fail (qual ^ ": unknown qualifier, or qualifier should be followed by an expression") in
-        List.fold_left apply_qualifier (noneset, field) qs in
+    let check already_set msg = if already_set then fail msg in
+    let apply_qualifier (whatset, field) =
+      function
+      | "endian", Some expr ->
+          check whatset.endian_set "an endian flag has been set already";
+          let field = P.set_endian_expr field expr in
+          { whatset with endian_set = true }, field
+      | "endian", None ->
+          fail "qualifier 'endian' should be followed by an expression"
+      | "offset", Some expr ->
+          check whatset.offset_set "an offset has been set already";
+          let field = P.set_offset field expr in
+          { whatset with offset_set = true }, field
+      | "offset", None ->
+          fail "qualifier 'offset' should be followed by an expression"
+      | "check", Some expr ->
+          check whatset.check_set "a check-qualifier has been set already";
+          let field = P.set_check field expr in
+          { whatset with check_set = true }, field
+      | "check", None ->
+          fail "qualifier 'check' should be followed by an expression"
+      | "bind", Some expr ->
+          check whatset.bind_set "a bind expression has been set already";
+          let field = P.set_bind field expr in
+          { whatset with bind_set = true }, field
+      | "bind", None ->
+          fail "qualifier 'bind' should be followed by an expression"
+      | "save_offset_to", Some expr (* XXX should be a pattern *) ->
+          check whatset.save_offset_to_set
+            "a save_offset_to-qualifier has been set already";
+          let id =
+            match expr with
+            | {pexp_desc = Pexp_ident {txt = Lident id}} -> id
+            | _ ->
+                failwith "pa_bitstring: internal error: save_offset_to only supports simple identifiers at the moment.  In future we should support full patterns." in
+          let field = P.set_save_offset_to_lident field id in
+          { whatset with save_offset_to_set = true }, field
+      | "save_offset_to", None ->
+          fail "qualifier 'save_offset_to' should be followed by a binding expression"
+      | s, Some _ ->
+          fail (s ^ ": unknown qualifier, or qualifier should not be followed by an expression")
+      | qual, None ->
+          let endian_quals = ["bigendian", BigEndian;
+                              "littleendian", LittleEndian;
+                              "nativeendian", NativeEndian] in
+          let sign_quals = ["signed", true; "unsigned", false] in
+          let type_quals = ["int", P.set_type_int;
+                            "string", P.set_type_string;
+                            "bitstring", P.set_type_bitstring] in
+          if List.mem_assoc qual endian_quals then (
+            check whatset.endian_set "an endian flag has been set already";
+            let field = P.set_endian field (List.assoc qual endian_quals) in
+            { whatset with endian_set = true }, field
+          ) else if List.mem_assoc qual sign_quals then (
+            check whatset.signed_set "a signed flag has been set already";
+            let field = P.set_signed field (List.assoc qual sign_quals) in
+            { whatset with signed_set = true }, field
+          ) else if List.mem_assoc qual type_quals then (
+            check whatset.type_set "a type flag has been set already";
+            let field = (List.assoc qual type_quals) field in
+            { whatset with type_set = true }, field
+          ) else
+            fail (qual ^ ": unknown qualifier, or qualifier should be followed by an expression") in
+    List.fold_left apply_qualifier (noneset, field) qs in
 
   (* If type is set to string or bitstring then endianness and
    * signedness qualifiers are meaningless and must not be set.
-   *)
+  *)
   let () =
     let t = P.get_type field in
     if (t = P.Bitstring || t = P.String) &&
-      (whatset.endian_set || whatset.signed_set) then
-        fail "string types and endian or signed qualifiers cannot be mixed" in
+       (whatset.endian_set || whatset.signed_set) then
+      fail "string types and endian or signed qualifiers cannot be mixed" in
 
   (* Default endianness, signedness, type if not set already. *)
   let field =
@@ -216,61 +213,75 @@ let parse_field loc field qs =
  * followed by an optional expression (used in certain cases).  Note
  * that we are careful not to declare any explicit reserved words.
  *)
-let qualifier = function
-  | {pexp_desc = Pexp_ident {txt = Lident q}} -> (q, None)
-  | {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident q}}, [_, e])} -> (q, Some e)
-  | {pexp_loc = loc} ->
-      Location.raise_errorf ~loc "bitstring: invalid qualifier syntax"
+(* let qualifier = function *)
+(*   | {pexp_desc = Pexp_ident {txt = Lident q}} -> (q, None) *)
+(*   | {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident q}}, [_, e])} -> (q, Some e) *)
+(*   | {pexp_loc = loc} -> *)
+(*       Location.raise_errorf ~loc "bitstring: invalid qualifier syntax" *)
 
 (* Field used in the bitmatch operator (a pattern).  This can actually
  * return multiple fields, in the case where the 'field' is a named
  * persitent pattern.
  *)
-let patt_field loc field =
-  match Re.split_full Re.(compile (char ':')) field with
-  | `Text fpatt :: `Delim _ :: `Text len :: qs ->
-      let fpatt = Parse.pattern (Lexing.from_string fpatt) in
-      let len = Parse.expression (Lexing.from_string len) in
-      let qs =
-        match qs with
-        | [] -> None
-        | `Delim _ :: `Text qs :: [] ->
-            let qs = Re.split Re.(compile (char ',')) qs in
-            let qs = List.map (fun q -> Parse.expression (Lexing.from_string q)) qs in
-            Some (List.map qualifier qs)
-        | _ ->
-            Location.raise_errorf "bitstring: invalid qualifier list"
-      in
-      let field = P.create_pattern_field loc in
-      let field = P.set_patt field fpatt in
-      let field = P.set_length field len in
-      [parse_field loc field qs]      (* Normal, single field. *)
-  | `Delim _ :: `Text name :: [] ->
-      begin match Parse.expression (Lexing.from_string name) with
-      | {pexp_desc = Pexp_ident {txt = Lident name}} ->
-          expand_named_pattern loc name   (* Named -> list of fields. *)
-      | _ ->
-          Location.raise_errorf "bitstring: invalid named pattern"
-      end
-  | l ->
-      (* List.iter (function (`Text t) -> Printf.eprintf "Text: %S\n%!" t *)
-      (*                   | `Delim _ -> Printf.eprintf "Delim\n%!") l; *)
-      Location.raise_errorf "bitstring: invalid pattern field"
+let patt_field fpatt =
+  let loc = fpatt.ppat_loc in
+  let len, qs =
+    match fpatt.ppat_attributes with
+    | ({txt = "l"}, PStr [{pstr_desc = Pstr_eval (len, _)}]) :: qs ->
+        let qs =
+          List.map (function
+            | ({txt = name}, PStr [{pstr_desc = Pstr_eval (e, _)}]) ->
+                (name, Some e)
+            | ({txt = name}, PStr []) ->
+                (name, None)
+            | ({loc}, _) ->
+                Location.raise_errorf ~loc "bitstring: bad qualifier") qs in
+        len, qs
+    | _ ->
+        Location.raise_errorf ~loc "bitstring: missing length"
+  in
+  let field = P.create_pattern_field loc in
+  let field = P.set_patt field fpatt in
+  let field = P.set_length field len in
+  [parse_field loc field qs]      (* Normal, single field. *)
+  (* match Re.split_full Re.(compile (char ':')) field with *)
+  (* | `Text fpatt :: `Delim _ :: `Text len :: qs -> *)
+  (*     let fpatt = Parse.pattern (Lexing.from_string fpatt) in *)
+  (*     let len = Parse.expression (Lexing.from_string len) in *)
+  (*     let qs = *)
+  (*       match qs with *)
+  (*       | [] -> None *)
+  (*       | `Delim _ :: `Text qs :: [] -> *)
+  (*           let qs = Re.split Re.(compile (char ',')) qs in *)
+  (*           let qs = List.map (fun q -> Parse.expression (Lexing.from_string q)) qs in *)
+  (*           Some (List.map qualifier qs) *)
+  (*       | _ -> *)
+  (*           Location.raise_errorf "bitstring: invalid qualifier list" *)
+  (*     in *)
+  (*     let field = P.create_pattern_field loc in *)
+  (*     let field = P.set_patt field fpatt in *)
+  (*     let field = P.set_length field len in *)
+  (*     [parse_field loc field qs]      (\* Normal, single field. *\) *)
+  (* | `Delim _ :: `Text name :: [] -> *)
+  (*     begin match Parse.expression (Lexing.from_string name) with *)
+  (*     | {pexp_desc = Pexp_ident {txt = Lident name}} -> *)
+  (*         expand_named_pattern loc name   (\* Named -> list of fields. *\) *)
+  (*     | _ -> *)
+  (*         Location.raise_errorf "bitstring: invalid named pattern" *)
+  (*     end *)
+  (* | l -> *)
+  (*     (\* List.iter (function (`Text t) -> Printf.eprintf "Text: %S\n%!" t *\) *)
+  (*     (\*                   | `Delim _ -> Printf.eprintf "Delim\n%!") l; *\) *)
+  (*     Location.raise_errorf "bitstring: invalid pattern field" *)
 
 (* Case inside bitmatch operator. *)
-let patt_fields loc fields =
-  match String.trim fields with
-  | "_" -> []
-  | fields ->
-      let fields = Re.split Re.(compile (char ';')) fields in
-      List.concat (List.map (patt_field loc) fields)
-
 let patt_case case =
   let aux = function
-    | {ppat_desc = Ppat_constant (Const_string (fields, Some "")); ppat_loc = loc} ->
-        patt_fields loc fields
-    | {ppat_loc = loc} ->
-        Location.raise_errorf ~loc "bitstring: invalid pattern"
+    | {ppat_desc = Ppat_any} -> []
+    | {ppat_desc = Ppat_tuple pats} ->
+        List.concat (List.map patt_field pats)
+    | fpatt ->
+        patt_field fpatt
   in
   match case.pc_lhs with
   | {ppat_desc = Ppat_alias (p, {txt = name})} ->
@@ -1258,17 +1269,17 @@ let constr_fields loc fields =
  * constructors is in place.
  *)
 let structure_item mapper = function
-  | {pstr_desc =
-       Pstr_extension
-         (({txt = "bitstring"}, PStr
-             [{pstr_desc =
-                 Pstr_value
-                   (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = name}};
-                         pvb_expr = {pexp_desc = Pexp_constant (Const_string (fields, Some ""));
-                                     pexp_loc = loc_fields}}])}]), []);
-     pstr_loc = loc} ->
-      add_named_pattern loc name (patt_fields loc_fields fields);
-      Str.mk (Pstr_eval (Ast.unit (), []))
+  (* | {pstr_desc = *)
+  (*      Pstr_extension *)
+  (*        (({txt = "bitstring"}, PStr *)
+  (*            [{pstr_desc = *)
+  (*                Pstr_value *)
+  (*                  (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = name}}; *)
+  (*                        pvb_expr = {pexp_desc = Pexp_constant (Const_string (fields, Some "")); *)
+  (*                                    pexp_loc = loc_fields}}])}]), []); *)
+  (*    pstr_loc = loc} -> *)
+  (*     add_named_pattern loc name (patt_fields loc_fields fields); *)
+  (*     Str.mk (Pstr_eval (Ast.unit (), [])) *)
   | other ->
       default_mapper.structure_item mapper other
 
