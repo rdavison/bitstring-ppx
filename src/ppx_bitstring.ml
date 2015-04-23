@@ -190,106 +190,6 @@ let parse_field loc field qs =
 
   field
 
-(* let qualifiers: [ *)
-(*   [ LIST0 *)
-(*       [ q = LIDENT; *)
-(*         e = OPT [ "("; e = expr; ")" -> e ] -> (q, e) ] *)
-(*       SEP "," ] *)
-(* ]; *)
-
-(* let patt_field: [ *)
-(*   [ fpatt = patt; ":"; len = expr LEVEL "top"; *)
-(*     qs = OPT [ ":"; qs = qualifiers -> qs ] -> *)
-(*       let field = P.create_pattern_field _loc in *)
-(*       let field = P.set_patt field fpatt in *)
-(*       let field = P.set_length field len in *)
-(*       [parse_field _loc field qs]     (\* Normal, single field. *\) *)
-(*   | ":"; name = LIDENT -> *)
-(*       expand_named_pattern _loc name (\* Named -> list of fields. *\) *)
-(*   ] *)
-(* ] *)
-
-(* Qualifiers are a list of identifiers ("string", "bigendian", etc.)
- * followed by an optional expression (used in certain cases).  Note
- * that we are careful not to declare any explicit reserved words.
- *)
-let qualifier = function
-  | ({txt = name}, PStr [{pstr_desc = Pstr_eval (e, _)}]) ->
-      (name, Some e)
-  | ({txt = name}, PStr []) ->
-      (name, None)
-  | ({loc}, _) ->
-      Location.raise_errorf ~loc "bitstring: bad qualifier"
-
-(* let qualifier = function *)
-(*   | {pexp_desc = Pexp_ident {txt = Lident q}} -> (q, None) *)
-(*   | {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident q}}, [_, e])} -> (q, Some e) *)
-(*   | {pexp_loc = loc} -> *)
-(*       Location.raise_errorf ~loc "bitstring: invalid qualifier syntax" *)
-
-(* Field used in the bitmatch operator (a pattern).  This can actually
- * return multiple fields, in the case where the 'field' is a named
- * persitent pattern.
- *)
-let patt_field fpatt =
-  let loc = fpatt.ppat_loc in
-  let len, qs =
-    match fpatt.ppat_attributes with
-    | ({txt = "l"}, PStr [{pstr_desc = Pstr_eval (len, _)}]) :: qs ->
-        let qs = List.map qualifier qs in
-        len, qs
-    | _ ->
-        Location.raise_errorf ~loc "bitstring: missing length"
-  in
-  let field = P.create_pattern_field loc in
-  let field = P.set_patt field fpatt in
-  let field = P.set_length field len in
-  [parse_field loc field qs]      (* Normal, single field. *)
-  (* match Re.split_full Re.(compile (char ':')) field with *)
-  (* | `Text fpatt :: `Delim _ :: `Text len :: qs -> *)
-  (*     let fpatt = Parse.pattern (Lexing.from_string fpatt) in *)
-  (*     let len = Parse.expression (Lexing.from_string len) in *)
-  (*     let qs = *)
-  (*       match qs with *)
-  (*       | [] -> None *)
-  (*       | `Delim _ :: `Text qs :: [] -> *)
-  (*           let qs = Re.split Re.(compile (char ',')) qs in *)
-  (*           let qs = List.map (fun q -> Parse.expression (Lexing.from_string q)) qs in *)
-  (*           Some (List.map qualifier qs) *)
-  (*       | _ -> *)
-  (*           Location.raise_errorf "bitstring: invalid qualifier list" *)
-  (*     in *)
-  (*     let field = P.create_pattern_field loc in *)
-  (*     let field = P.set_patt field fpatt in *)
-  (*     let field = P.set_length field len in *)
-  (*     [parse_field loc field qs]      (\* Normal, single field. *\) *)
-  (* | `Delim _ :: `Text name :: [] -> *)
-  (*     begin match Parse.expression (Lexing.from_string name) with *)
-  (*     | {pexp_desc = Pexp_ident {txt = Lident name}} -> *)
-  (*         expand_named_pattern loc name   (\* Named -> list of fields. *\) *)
-  (*     | _ -> *)
-  (*         Location.raise_errorf "bitstring: invalid named pattern" *)
-  (*     end *)
-  (* | l -> *)
-  (*     (\* List.iter (function (`Text t) -> Printf.eprintf "Text: %S\n%!" t *\) *)
-  (*     (\*                   | `Delim _ -> Printf.eprintf "Delim\n%!") l; *\) *)
-  (*     Location.raise_errorf "bitstring: invalid pattern field" *)
-
-(* Case inside bitmatch operator. *)
-let patt_case case =
-  let aux = function
-    | {ppat_desc = Ppat_any} -> []
-    | {ppat_desc = Ppat_tuple pats} ->
-        List.concat (List.map patt_field pats)
-    | fpatt ->
-        patt_field fpatt
-  in
-  match case.pc_lhs with
-  | {ppat_desc = Ppat_alias (p, {txt = name})} ->
-      (aux p, Some name, case.pc_guard, case.pc_rhs)
-  | p ->
-      (aux p, None, case.pc_guard, case.pc_rhs)
-
 type functype = ExtractFunc | ConstructFunc
 
 (* Choose the right constructor function. *)
@@ -1212,7 +1112,6 @@ EXTEND Gram
     ]
   ];
 
-  (* Field used in the BITSTRING constructor (an expression). *)
   constr_field: [
     [ fexpr = expr LEVEL "top"; ":"; len = expr LEVEL "top";
       qs = OPT [ ":"; qs = qualifiers -> qs ] ->
@@ -1259,6 +1158,111 @@ EXTEND Gram
 END
 *)
 
+(* let qualifiers: [ *)
+(*   [ LIST0 *)
+(*       [ q = LIDENT; *)
+(*         e = OPT [ "("; e = expr; ")" -> e ] -> (q, e) ] *)
+(*       SEP "," ] *)
+(* ]; *)
+
+(* let patt_field: [ *)
+(*   [ fpatt = patt; ":"; len = expr LEVEL "top"; *)
+(*     qs = OPT [ ":"; qs = qualifiers -> qs ] -> *)
+(*       let field = P.create_pattern_field _loc in *)
+(*       let field = P.set_patt field fpatt in *)
+(*       let field = P.set_length field len in *)
+(*       [parse_field _loc field qs]     (\* Normal, single field. *\) *)
+(*   | ":"; name = LIDENT -> *)
+(*       expand_named_pattern _loc name (\* Named -> list of fields. *\) *)
+(*   ] *)
+(* ] *)
+
+(* Qualifiers are a list of identifiers ("string", "bigendian", etc.)
+ * followed by an optional expression (used in certain cases).  Note
+ * that we are careful not to declare any explicit reserved words.
+ *)
+let qualifier = function
+  | ({txt = name}, PStr [{pstr_desc = Pstr_eval (e, _)}]) ->
+      (name, Some e)
+  | ({txt = name}, PStr []) ->
+      (name, None)
+  | ({loc}, _) ->
+      Location.raise_errorf ~loc "bitstring: bad qualifier"
+
+(* let qualifier = function *)
+(*   | {pexp_desc = Pexp_ident {txt = Lident q}} -> (q, None) *)
+(*   | {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident q}}, [_, e])} -> (q, Some e) *)
+(*   | {pexp_loc = loc} -> *)
+(*       Location.raise_errorf ~loc "bitstring: invalid qualifier syntax" *)
+
+(* Field used in the bitmatch operator (a pattern).  This can actually
+ * return multiple fields, in the case where the 'field' is a named
+ * persitent pattern.
+ *)
+let patt_field = function
+  | {ppat_desc = Ppat_any} -> []
+  | {ppat_desc = Ppat_extension ({txt = name}, PStr []); ppat_loc = loc} ->
+      expand_named_pattern loc name   (* Named -> list of fields. *)
+  | fpatt ->
+      let loc = fpatt.ppat_loc in
+      let len, qs =
+        match fpatt.ppat_attributes with
+        | ({txt = "l"}, PStr [{pstr_desc = Pstr_eval (len, _)}]) :: qs ->
+            let qs = List.map qualifier qs in
+            len, qs
+        | _ ->
+            Location.raise_errorf ~loc "bitstring: missing length"
+      in
+      let field = P.create_pattern_field loc in
+      let field = P.set_patt field fpatt in
+      let field = P.set_length field len in
+      [parse_field loc field qs]      (* Normal, single field. *)
+
+  (* match Re.split_full Re.(compile (char ':')) field with *)
+  (* | `Text fpatt :: `Delim _ :: `Text len :: qs -> *)
+  (*     let fpatt = Parse.pattern (Lexing.from_string fpatt) in *)
+  (*     let len = Parse.expression (Lexing.from_string len) in *)
+  (*     let qs = *)
+  (*       match qs with *)
+  (*       | [] -> None *)
+  (*       | `Delim _ :: `Text qs :: [] -> *)
+  (*           let qs = Re.split Re.(compile (char ',')) qs in *)
+  (*           let qs = List.map (fun q -> Parse.expression (Lexing.from_string q)) qs in *)
+  (*           Some (List.map qualifier qs) *)
+  (*       | _ -> *)
+  (*           Location.raise_errorf "bitstring: invalid qualifier list" *)
+  (*     in *)
+  (*     let field = P.create_pattern_field loc in *)
+  (*     let field = P.set_patt field fpatt in *)
+  (*     let field = P.set_length field len in *)
+  (*     [parse_field loc field qs]      (\* Normal, single field. *\) *)
+  (* | `Delim _ :: `Text name :: [] -> *)
+  (*     begin match Parse.expression (Lexing.from_string name) with *)
+  (*     | {pexp_desc = Pexp_ident {txt = Lident name}} -> *)
+  (*         expand_named_pattern loc name   (\* Named -> list of fields. *\) *)
+  (*     | _ -> *)
+  (*         Location.raise_errorf "bitstring: invalid named pattern" *)
+  (*     end *)
+  (* | l -> *)
+  (*     (\* List.iter (function (`Text t) -> Printf.eprintf "Text: %S\n%!" t *\) *)
+  (*     (\*                   | `Delim _ -> Printf.eprintf "Delim\n%!") l; *\) *)
+  (*     Location.raise_errorf "bitstring: invalid pattern field" *)
+
+(* Case inside bitmatch operator. *)
+let patt_case case =
+  let aux = function
+    | {ppat_desc = Ppat_tuple pats} ->
+        List.concat (List.map patt_field pats)
+    | fpatt ->
+        patt_field fpatt
+  in
+  match case.pc_lhs with
+  | {ppat_desc = Ppat_alias (p, {txt = name})} ->
+      (aux p, Some name, case.pc_guard, case.pc_rhs)
+  | p ->
+      (aux p, None, case.pc_guard, case.pc_rhs)
+
+(* Field used in the BITSTRING constructor (an expression). *)
 let constr_field fexpr =
   let loc = fexpr.pexp_loc in
   let len, qs =
@@ -1287,17 +1291,15 @@ let constr_fields = function
  * constructors is in place.
  *)
 let structure_item mapper = function
-  (* | {pstr_desc = *)
-  (*      Pstr_extension *)
-  (*        (({txt = "bitstring"}, PStr *)
-  (*            [{pstr_desc = *)
-  (*                Pstr_value *)
-  (*                  (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = name}}; *)
-  (*                        pvb_expr = {pexp_desc = Pexp_constant (Const_string (fields, Some "")); *)
-  (*                                    pexp_loc = loc_fields}}])}]), []); *)
-  (*    pstr_loc = loc} -> *)
-  (*     add_named_pattern loc name (patt_fields loc_fields fields); *)
-  (*     Str.mk (Pstr_eval (Ast.unit (), [])) *)
+  | {pstr_desc =
+       Pstr_value
+         (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = name}};
+               pvb_expr =
+                 {pexp_desc =
+                    Pexp_extension ({txt = "bitstring"}, PPat (fpatt, None))}}]);
+     pstr_loc = loc} ->
+      add_named_pattern loc name (patt_field fpatt);
+      Str.mk (Pstr_eval (Ast.unit (), []))
   | other ->
       default_mapper.structure_item mapper other
 
@@ -1319,4 +1321,4 @@ let expr mapper = function
 
 let () =
   Ast_mapper.register "ppx_bitstring"
-    (fun argv -> {default_mapper with expr})
+    (fun argv -> {default_mapper with structure_item; expr})
