@@ -1063,86 +1063,6 @@ let load_patterns_from_file loc filename =
 EXTEND Gram
   GLOBAL: expr str_item;
 
-  (* Qualifiers are a list of identifiers ("string", "bigendian", etc.)
-   * followed by an optional expression (used in certain cases).  Note
-   * that we are careful not to declare any explicit reserved words.
-   *)
-  qualifiers: [
-    [ LIST0
-        [ q = LIDENT;
-          e = OPT [ "("; e = expr; ")" -> e ] -> (q, e) ]
-        SEP "," ]
-  ];
-
-  (* Field used in the bitmatch operator (a pattern).  This can actually
-   * return multiple fields, in the case where the 'field' is a named
-   * persitent pattern.
-   *)
-  patt_field: [
-    [ fpatt = patt; ":"; len = expr LEVEL "top";
-      qs = OPT [ ":"; qs = qualifiers -> qs ] ->
-        let field = P.create_pattern_field _loc in
-        let field = P.set_patt field fpatt in
-        let field = P.set_length field len in
-        [parse_field _loc field qs]     (* Normal, single field. *)
-    | ":"; name = LIDENT ->
-        expand_named_pattern _loc name (* Named -> list of fields. *)
-    ]
-  ];
-
-  (* Case inside bitmatch operator. *)
-  patt_fields: [
-    [ "{";
-      fields = LIST0 patt_field SEP ";";
-      "}" ->
-        List.concat fields
-    | "{";
-      "_";
-      "}" ->
-        []
-    ]
-  ];
-
-  patt_case: [
-    [ fields = patt_fields;
-      bind = OPT [ "as"; name = LIDENT -> name ];
-      whenclause = OPT [ "when"; e = expr -> e ]; "->";
-      code = expr ->
-        (fields, bind, whenclause, code)
-    ]
-  ];
-
-  constr_field: [
-    [ fexpr = expr LEVEL "top"; ":"; len = expr LEVEL "top";
-      qs = OPT [ ":"; qs = qualifiers -> qs ] ->
-        let field = P.create_constructor_field _loc in
-        let field = P.set_expr field fexpr in
-        let field = P.set_length field len in
-        parse_field _loc field qs
-    ]
-  ];
-
-  constr_fields: [
-    [ "{";
-      fields = LIST0 constr_field SEP ";";
-      "}" ->
-        fields
-    ]
-  ];
-
-  expr: LEVEL ";" [
-    [ "bitmatch";
-      bs = expr; "with"; OPT "|";
-      cases = LIST1 patt_case SEP "|" ->
-        output_bitmatch _loc bs cases
-    ]
-
-  | [ "BITSTRING";
-      fields = constr_fields ->
-        output_constructor _loc fields
-    ]
-  ];
-
   str_item: LEVEL "top" [
     [ "let"; "bitmatch";
       name = LIDENT; "="; fields = patt_fields ->
@@ -1158,25 +1078,6 @@ EXTEND Gram
 END
 *)
 
-(* let qualifiers: [ *)
-(*   [ LIST0 *)
-(*       [ q = LIDENT; *)
-(*         e = OPT [ "("; e = expr; ")" -> e ] -> (q, e) ] *)
-(*       SEP "," ] *)
-(* ]; *)
-
-(* let patt_field: [ *)
-(*   [ fpatt = patt; ":"; len = expr LEVEL "top"; *)
-(*     qs = OPT [ ":"; qs = qualifiers -> qs ] -> *)
-(*       let field = P.create_pattern_field _loc in *)
-(*       let field = P.set_patt field fpatt in *)
-(*       let field = P.set_length field len in *)
-(*       [parse_field _loc field qs]     (\* Normal, single field. *\) *)
-(*   | ":"; name = LIDENT -> *)
-(*       expand_named_pattern _loc name (\* Named -> list of fields. *\) *)
-(*   ] *)
-(* ] *)
-
 (* Qualifiers are a list of identifiers ("string", "bigendian", etc.)
  * followed by an optional expression (used in certain cases).  Note
  * that we are careful not to declare any explicit reserved words.
@@ -1188,12 +1089,6 @@ let qualifier = function
       (name, None)
   | ({loc}, _) ->
       Location.raise_errorf ~loc "bitstring: bad qualifier"
-
-(* let qualifier = function *)
-(*   | {pexp_desc = Pexp_ident {txt = Lident q}} -> (q, None) *)
-(*   | {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident q}}, [_, e])} -> (q, Some e) *)
-(*   | {pexp_loc = loc} -> *)
-(*       Location.raise_errorf ~loc "bitstring: invalid qualifier syntax" *)
 
 (* Field used in the bitmatch operator (a pattern).  This can actually
  * return multiple fields, in the case where the 'field' is a named
@@ -1217,36 +1112,6 @@ let patt_field = function
       let field = P.set_patt field fpatt in
       let field = P.set_length field len in
       [parse_field loc field qs]      (* Normal, single field. *)
-
-  (* match Re.split_full Re.(compile (char ':')) field with *)
-  (* | `Text fpatt :: `Delim _ :: `Text len :: qs -> *)
-  (*     let fpatt = Parse.pattern (Lexing.from_string fpatt) in *)
-  (*     let len = Parse.expression (Lexing.from_string len) in *)
-  (*     let qs = *)
-  (*       match qs with *)
-  (*       | [] -> None *)
-  (*       | `Delim _ :: `Text qs :: [] -> *)
-  (*           let qs = Re.split Re.(compile (char ',')) qs in *)
-  (*           let qs = List.map (fun q -> Parse.expression (Lexing.from_string q)) qs in *)
-  (*           Some (List.map qualifier qs) *)
-  (*       | _ -> *)
-  (*           Location.raise_errorf "bitstring: invalid qualifier list" *)
-  (*     in *)
-  (*     let field = P.create_pattern_field loc in *)
-  (*     let field = P.set_patt field fpatt in *)
-  (*     let field = P.set_length field len in *)
-  (*     [parse_field loc field qs]      (\* Normal, single field. *\) *)
-  (* | `Delim _ :: `Text name :: [] -> *)
-  (*     begin match Parse.expression (Lexing.from_string name) with *)
-  (*     | {pexp_desc = Pexp_ident {txt = Lident name}} -> *)
-  (*         expand_named_pattern loc name   (\* Named -> list of fields. *\) *)
-  (*     | _ -> *)
-  (*         Location.raise_errorf "bitstring: invalid named pattern" *)
-  (*     end *)
-  (* | l -> *)
-  (*     (\* List.iter (function (`Text t) -> Printf.eprintf "Text: %S\n%!" t *\) *)
-  (*     (\*                   | `Delim _ -> Printf.eprintf "Delim\n%!") l; *\) *)
-  (*     Location.raise_errorf "bitstring: invalid pattern field" *)
 
 (* Case inside bitmatch operator. *)
 let patt_case case =
