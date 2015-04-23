@@ -1,4 +1,7 @@
-<src/bitstring_persistent.*>: package(compiler-libs.common), package(ppx_tools.metaquot)
-<src/ppx_bitstring.*>: package(compiler-libs.common), package(unix), package(ppx_tools.metaquot), package(re)
-<src/bitstring_c.*>: endianness
-<src/bitstring.*>: bitstring_c, package(unix)
+true: package(unix)
+true: package(compiler-libs.common)
+true: package(ocplib-endian)
+<src/bitstring_persistent.*>: package(ppx_tools.metaquot)
+<src/ppx_bitstring.*>: package(ppx_tools.metaquot), package(re)
+<src>: include
+<examples/*.{byte,native,ml}>: use_bitstring
