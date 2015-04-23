@@ -26,8 +26,6 @@ open Printf
 include Bitstring_types
 
 let nativeendian = if Sys.big_endian then BigEndian else LittleEndian
-let version = "0.0" (* XXX FIX *)
-let package = "ppx_bitstring" (* XXX FIX *)
 
 (* Enable runtime debug messages.  Must also have been enabled
  * in pa_bitstring.ml.

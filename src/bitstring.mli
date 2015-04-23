@@ -916,12 +916,6 @@ val get : bitstring -> int -> int
 
 (** {3 Miscellaneous} *)
 
-val package : string
-(** The package name, always ["ocaml-bitstring"] *)
-
-val version : string
-(** The package version as a string. *)
-
 val debug : bool ref
 (** Set this variable to true to enable extended debugging.
     This only works if debugging was also enabled in the
