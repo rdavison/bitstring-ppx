@@ -1127,10 +1127,10 @@ let load_patterns_from_file loc filename =
     if Filename.is_relative filename && Filename.is_implicit filename then (
       (* Try current directory. *)
       try open_in filename
-      with _ ->
+      with exn ->
         (* Try OCaml library directory. *)
-        try open_in (Filename.concat Bitstring_config.ocamllibdir filename)
-        with exn -> Location.raise_errorf ~loc "Exn : %s" (Printexc.to_string exn)
+(*        try open_in (Filename.concat Bitstring_config.ocamllibdir filename)
+          with exn -> *) Location.raise_errorf ~loc "Exn : %s" (Printexc.to_string exn)
     ) else (
       try open_in filename
       with exn -> Location.raise_errorf ~loc "Exn : %s" (Printexc.to_string exn)
