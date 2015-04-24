@@ -1095,7 +1095,6 @@ let qualifier = function
  * persitent pattern.
  *)
 let rec patt_fields = function
-  | {ppat_desc = Ppat_any} -> []
   | {ppat_desc = Ppat_extension ({txt = name}, PStr []); ppat_loc = loc} ->
       expand_named_pattern loc name   (* Named -> list of fields. *)
   | {ppat_desc = Ppat_tuple pats} ->
@@ -1117,6 +1116,10 @@ let rec patt_fields = function
 
 (* Case inside bitmatch operator. *)
 let patt_case case =
+  let patt_fields = function
+    | {ppat_desc = Ppat_any} -> []
+    | fpatt -> patt_fields fpatt
+  in
   match case.pc_lhs with
   | {ppat_desc = Ppat_alias (p, {txt = name})} ->
       (patt_fields p, Some name, case.pc_guard, case.pc_rhs)
