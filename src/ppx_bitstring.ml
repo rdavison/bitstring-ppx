@@ -1173,13 +1173,14 @@ let structure_item mapper = function
   | other ->
       default_mapper.structure_item mapper other
 
-let expr mapper = function
+let rec expr mapper = function
   (* 'bitmatch' expressions. *)
   | {pexp_desc =
        Pexp_extension
          ({txt = "bitstring"}, PStr
             [{pstr_desc = Pstr_eval ({pexp_desc = Pexp_match (bs, cases)}, _)}]);
      pexp_loc = loc} ->
+      let cases = List.map (fun case -> {case with pc_rhs = expr mapper case.pc_rhs}) cases in
       output_bitmatch loc bs (List.map patt_case cases)
   (* Constructor. *)
   | {pexp_desc =
