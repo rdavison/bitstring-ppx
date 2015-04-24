@@ -42,9 +42,9 @@ let () =
   List.iter (
     function
     | name, P.Pattern patt ->
-	printf "let bitmatch %s =\n%s\n"
-	  name (P.string_of_pattern patt)
+        printf "let %s =\n[%%bitstring ? %s]\n"
+          name (P.string_of_pattern patt)
     | name, P.Constructor cons ->
-	printf "let BITSTRING %s =\n%s\n"
-	  name (P.string_of_constructor cons)
+        printf "let %s =\n[%%bitstring %s]\n"
+          name (P.string_of_constructor cons)
   ) names

@@ -96,9 +96,9 @@ let rec expr_is_constant = function
   | _ -> None                           (* Anything else is not constant. *)
 
 let string_of_field_type = function
-  | Int -> "int"
-  | String -> "string"
-  | Bitstring -> "bitstring"
+  | Int -> "[@int]"
+  | String -> "[@string]"
+  | Bitstring -> "[@bitstring]"
 
 let patt_printer = function
   | { ppat_desc = Ppat_var { txt = id } } -> id
@@ -120,57 +120,52 @@ let _string_of_field { flen = flen;
   let flen = expr_printer flen in
   let endian =
     match endian with
-    | ConstantEndian endian -> Bitstring.string_of_endian endian
-    | EndianExpr expr -> sprintf "endian(%s)" (expr_printer expr) in
-  let signed = if signed then "signed" else "unsigned" in
+    | ConstantEndian endian -> "[@" ^ Bitstring.string_of_endian endian ^ "]"
+    | EndianExpr expr -> sprintf "[@endian %s]" (expr_printer expr) in
+  let signed = if signed then "[@signed]" else "[@unsigned]" in
   let t = string_of_field_type t in
 
   let offset =
     match offset with
     | None -> ""
-    | Some expr -> sprintf ", offset(%s)" (expr_printer expr) in
+    | Some expr -> sprintf " [@offset %s]" (expr_printer expr) in
 
   let check =
     match check with
     | None -> ""
-    | Some expr -> sprintf ", check(%s)" (expr_printer expr) in
+    | Some expr -> sprintf " [@check %s]" (expr_printer expr) in
 
   let bind =
     match bind with
     | None -> ""
-    | Some expr -> sprintf ", bind(%s)" (expr_printer expr) in
+    | Some expr -> sprintf " [@bind %s]" (expr_printer expr) in
 
   let save_offset_to =
     match save_offset_to with
     | None -> ""
     | Some patt ->
         match patt with
-        | { ppat_desc = Ppat_var { txt = id } } -> sprintf ", save_offset_to(%s)" id
-        | _ -> sprintf ", save_offset_to([patt])" in
+        | { ppat_desc = Ppat_var { txt = id } } -> sprintf " [@save_offset_to %s]" id
+        | _ -> sprintf " [@save_offset_to [patt]]" in
 
-  let loc_fname = loc.Location.loc_start.Lexing.pos_fname in
-  let loc_line = loc.Location.loc_start.Lexing.pos_lnum in
-  let loc_char = loc.Location.loc_start.Lexing.pos_cnum - loc.Location.loc_start.Lexing.pos_bol in
+  let loc_fname, loc_line, loc_char =
+    Location.get_pos_info loc.Location.loc_start in
 
-  sprintf "%s : %s, %s, %s%s%s%s%s (* %S:%d %d *)"
+  sprintf "[@l %s] %s %s %s%s%s%s%s (* %S:%d %d *)"
     flen t endian signed offset check bind save_offset_to
     loc_fname loc_line loc_char
 
 let rec string_of_pattern_field ({ field = patt } as field) =
-  sprintf "%s : %s" (patt_printer patt) (_string_of_field field)
+  sprintf "%s %s" (patt_printer patt) (_string_of_field field)
 
 and string_of_constructor_field ({ field = expr } as field) =
-  sprintf "%s : %s" (expr_printer expr) (_string_of_field field)
+  sprintf "%s %s" (expr_printer expr) (_string_of_field field)
 
 let string_of_pattern pattern =
-  "{ " ^
-    String.concat ";\n  " (List.map string_of_pattern_field pattern) ^
-    " }\n"
+  String.concat ",\n  " (List.map string_of_pattern_field pattern)
 
 let string_of_constructor constructor =
-  "{ " ^
-    String.concat ";\n  " (List.map string_of_constructor_field constructor) ^
-    " }\n"
+  String.concat ",\n  " (List.map string_of_constructor_field constructor)
 
 let named_to_channel chan n = Marshal.to_channel chan n []
 
