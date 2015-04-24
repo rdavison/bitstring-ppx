@@ -1,0 +1,1146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Bitstring_persistent.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Bitstring" rel="Chapter" href="Bitstring.html">
+<link title="Bitstring_persistent" rel="Chapter" href="Bitstring_persistent.html">
+<link title="Bitstring_types" rel="Chapter" href="Bitstring_types.html"><link title="Introduction" rel="Section" href="#2_Introduction">
+<link title="Examples" rel="Section" href="#2_Examples">
+<link title="Loading, creating bitstrings" rel="Section" href="#2_Loadingcreatingbitstrings">
+<link title="Matching bitstrings with patterns" rel="Section" href="#2_Matchingbitstringswithpatterns">
+<link title="Constructing bitstrings" rel="Section" href="#2_Constructingbitstrings">
+<link title="Integer types" rel="Section" href="#integertypes">
+<link title="Advanced pattern-matching features" rel="Section" href="#2_Advancedpatternmatchingfeatures">
+<link title="Named patterns and persistent patterns" rel="Section" href="#2_Namedpatternsandpersistentpatterns">
+<link title="Compiling" rel="Section" href="#2_Compiling">
+<link title="Security and type safety" rel="Section" href="#2_Securityandtypesafety">
+<link title="Limits" rel="Section" href="#2_Limits">
+<link title="Reference" rel="Section" href="#reference">
+<link title="Pattern field reference" rel="Subsection" href="#patternfieldreference">
+<link title="Other cases in bitmatch" rel="Subsection" href="#3_Othercasesinbitmatch">
+<link title="Construction exception" rel="Subsection" href="#3_Constructionexception">
+<link title="Computed offsets" rel="Subsection" href="#computedoffsets">
+<link title="Check expressions" rel="Subsection" href="#3_Checkexpressions">
+<link title="Bind expressions" rel="Subsection" href="#3_Bindexpressions">
+<link title="Order of evaluation of check() and bind()" rel="Subsection" href="#3_Orderofevaluationofcheckandbind">
+<link title="save_offset_to" rel="Subsection" href="#3_saveoffsetto">
+<link title="Security on input" rel="Subsection" href="#3_Securityoninput">
+<link title="Security on output" rel="Subsection" href="#3_Securityonoutput">
+<link title="Order of evaluation" rel="Subsection" href="#3_Orderofevaluation">
+<link title="Safety" rel="Subsection" href="#3_Safety">
+<link title="Types" rel="Subsection" href="#3_Types">
+<link title="Exceptions" rel="Subsection" href="#3_Exceptions">
+<link title="Bitstring comparison" rel="Subsection" href="#3_Bitstringcomparison">
+<link title="Bitstring manipulation" rel="Subsection" href="#3_Bitstringmanipulation">
+<link title="Constructing bitstrings" rel="Subsection" href="#3_Constructingbitstrings">
+<link title="Converting bitstrings" rel="Subsection" href="#3_Convertingbitstrings">
+<link title="Printing bitstrings" rel="Subsection" href="#3_Printingbitstrings">
+<link title="Bitstring buffer" rel="Subsection" href="#3_Bitstringbuffer">
+<link title="Get/set bits" rel="Subsection" href="#3_Getsetbits">
+<link title="Miscellaneous" rel="Subsection" href="#3_Miscellaneous">
+<title>Bitstring</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Bitstring_persistent.html" title="Bitstring_persistent">Next</a>
+</div>
+<h1>Module <a href="type_Bitstring.html">Bitstring</a></h1>
+
+<pre><span class="keyword">module</span> Bitstring: <code class="code"><span class="keyword">sig</span></code> <a href="Bitstring.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Bitstring library.<br>
+</div>
+<hr width="100%">
+<br>
+<a href="#reference">Jump straight to the reference section for
+   documentation on types and functions</a>.
+<p>
+
+   <h2 id="2_Introduction">Introduction</h2>
+<p>
+
+   Bitstring adds Erlang-style bitstrings and matching over bitstrings
+   as a syntax extension and library for OCaml.  You can use
+   this module to both parse and generate binary formats, for
+   example, communications protocols, disk formats and binary files.
+<p>
+
+   <a href="http://code.google.com/p/bitstring/">OCaml bitstring website</a>
+<p>
+
+   This library used to be called "bitmatch".
+<p>
+
+   <h2 id="2_Examples">Examples</h2>
+<p>
+
+   A function which can parse IPv4 packets:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keyword">let</span>&nbsp;display&nbsp;pkt&nbsp;=<br>
+&nbsp;&nbsp;bitmatch&nbsp;pkt&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;<span class="comment">(*&nbsp;IPv4&nbsp;packet&nbsp;header<br>
+&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3<br>
+&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;1&nbsp;2&nbsp;3&nbsp;4&nbsp;5&nbsp;6&nbsp;7&nbsp;8&nbsp;9&nbsp;0&nbsp;1&nbsp;2&nbsp;3&nbsp;4&nbsp;5&nbsp;6&nbsp;7&nbsp;8&nbsp;9&nbsp;0&nbsp;1&nbsp;2&nbsp;3&nbsp;4&nbsp;5&nbsp;6&nbsp;7&nbsp;8&nbsp;9&nbsp;0&nbsp;1<br>
+&nbsp;&nbsp;&nbsp;+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<br>
+&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;4&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;IHL&nbsp;&nbsp;|Type&nbsp;of&nbsp;Service|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Total&nbsp;Length&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<br>
+&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Identification&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|Flags|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fragment&nbsp;Offset&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<br>
+&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;Time&nbsp;to&nbsp;Live&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;Protocol&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Header&nbsp;Checksum&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<br>
+&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Source&nbsp;Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<br>
+&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Destination&nbsp;Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<br>
+&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Options&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;Padding&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<br>
+&nbsp;&nbsp;*)</span><br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;{&nbsp;4&nbsp;:&nbsp;4;&nbsp;hdrlen&nbsp;:&nbsp;4;&nbsp;tos&nbsp;:&nbsp;8;&nbsp;&nbsp;&nbsp;length&nbsp;:&nbsp;16;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;identification&nbsp;:&nbsp;16;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flags&nbsp;:&nbsp;3;&nbsp;fragoffset&nbsp;:&nbsp;13;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ttl&nbsp;:&nbsp;8;&nbsp;protocol&nbsp;:&nbsp;8;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checksum&nbsp;:&nbsp;16;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;source&nbsp;:&nbsp;32;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest&nbsp;:&nbsp;32;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;options&nbsp;:&nbsp;(hdrlen-5)*32&nbsp;:&nbsp;bitstring;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;payload&nbsp;:&nbsp;-1&nbsp;:&nbsp;bitstring&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"IPv4:\n"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;header&nbsp;length:&nbsp;%d&nbsp;*&nbsp;32&nbsp;bit&nbsp;words\n"</span>&nbsp;hdrlen;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;type&nbsp;of&nbsp;service:&nbsp;%d\n"</span>&nbsp;tos;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;packet&nbsp;length:&nbsp;%d&nbsp;bytes\n"</span>&nbsp;length;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;identification:&nbsp;%d\n"</span>&nbsp;identification;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;flags:&nbsp;%d\n"</span>&nbsp;flags;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;fragment&nbsp;offset:&nbsp;%d\n"</span>&nbsp;fragoffset;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;ttl:&nbsp;%d\n"</span>&nbsp;ttl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;protocol:&nbsp;%d\n"</span>&nbsp;protocol;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;checksum:&nbsp;%d\n"</span>&nbsp;checksum;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;source:&nbsp;%lx&nbsp;&nbsp;dest:&nbsp;%lx\n"</span>&nbsp;source&nbsp;dest;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;header&nbsp;options&nbsp;+&nbsp;padding:\n"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Bitstring</span>.hexdump_bitstring&nbsp;stdout&nbsp;options;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;packet&nbsp;payload:\n"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Bitstring</span>.hexdump_bitstring&nbsp;stdout&nbsp;payload<br>
+<br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;{&nbsp;version&nbsp;:&nbsp;4&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;eprintf&nbsp;<span class="string">"unknown&nbsp;IP&nbsp;version&nbsp;%d\n"</span>&nbsp;version;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;exit&nbsp;1<br>
+<br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;{&nbsp;_&nbsp;}&nbsp;<span class="keyword">as</span>&nbsp;pkt&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;eprintf&nbsp;<span class="string">"data&nbsp;is&nbsp;smaller&nbsp;than&nbsp;one&nbsp;nibble:\n"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Bitstring</span>.hexdump_bitstring&nbsp;stderr&nbsp;pkt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;exit&nbsp;1<br>
+</code></pre>
+<p>
+
+   A program which can parse
+   <a href="http://lxr.linux.no/linux/include/linux/ext3_fs.h">Linux EXT3 filesystem superblocks</a>:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keyword">let</span>&nbsp;bits&nbsp;=&nbsp;<span class="constructor">Bitstring</span>.bitstring_of_file&nbsp;<span class="string">"tests/ext3_sb"</span><br>
+<br>
+<span class="keyword">let</span>&nbsp;()&nbsp;=<br>
+&nbsp;&nbsp;bitmatch&nbsp;bits&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;{&nbsp;s_inodes_count&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Inodes&nbsp;count&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_blocks_count&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Blocks&nbsp;count&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_r_blocks_count&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Reserved&nbsp;blocks&nbsp;count&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_free_blocks_count&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;<span class="comment">(*&nbsp;Free&nbsp;blocks&nbsp;count&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_free_inodes_count&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;<span class="comment">(*&nbsp;Free&nbsp;inodes&nbsp;count&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_first_data_block&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;First&nbsp;Data&nbsp;Block&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_log_block_size&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Block&nbsp;size&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_log_frag_size&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Fragment&nbsp;size&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_blocks_per_group&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;#&nbsp;Blocks&nbsp;per&nbsp;group&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_frags_per_group&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;#&nbsp;Fragments&nbsp;per&nbsp;group&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_inodes_per_group&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;#&nbsp;Inodes&nbsp;per&nbsp;group&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_mtime&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Mount&nbsp;time&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_wtime&nbsp;:&nbsp;32&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Write&nbsp;time&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_mnt_count&nbsp;:&nbsp;16&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Mount&nbsp;count&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_max_mnt_count&nbsp;:&nbsp;16&nbsp;:&nbsp;littleendian;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Maximal&nbsp;mount&nbsp;count&nbsp;*)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0xef53&nbsp;:&nbsp;16&nbsp;:&nbsp;littleendian&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Magic&nbsp;signature&nbsp;*)</span><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"ext3&nbsp;superblock:\n"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;s_inodes_count&nbsp;=&nbsp;%ld\n"</span>&nbsp;s_inodes_count;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;s_blocks_count&nbsp;=&nbsp;%ld\n"</span>&nbsp;s_blocks_count;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;s_free_inodes_count&nbsp;=&nbsp;%ld\n"</span>&nbsp;s_free_inodes_count;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"&nbsp;&nbsp;s_free_blocks_count&nbsp;=&nbsp;%ld\n"</span>&nbsp;s_free_blocks_count<br>
+<br>
+&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;{&nbsp;_&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;eprintf&nbsp;<span class="string">"not&nbsp;an&nbsp;ext3&nbsp;superblock!\n%!"</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;exit&nbsp;2<br>
+</code></pre>
+<p>
+
+   Constructing packets for a simple binary message
+   protocol:
+<p>
+
+<pre class="codepre"><code class="code"><span class="comment">(*<br>
+&nbsp;&nbsp;+---------------+---------------+--------------------------+<br>
+&nbsp;&nbsp;|&nbsp;type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;subtype&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;parameter&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;+---------------+---------------+--------------------------+<br>
+&nbsp;&nbsp;&nbsp;&lt;--&nbsp;16&nbsp;bits&nbsp;--&gt;&nbsp;&lt;--&nbsp;16&nbsp;bits&nbsp;--&gt;&nbsp;&lt;-------&nbsp;32&nbsp;bits&nbsp;--------&gt;<br>
+<br>
+&nbsp;&nbsp;All&nbsp;fields&nbsp;are&nbsp;in&nbsp;network&nbsp;byte&nbsp;order.<br>
+*)</span><br>
+<br>
+<span class="keyword">let</span>&nbsp;make_message&nbsp;typ&nbsp;subtype&nbsp;param&nbsp;=<br>
+&nbsp;&nbsp;(<span class="constructor">BITSTRING</span>&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;typ&nbsp;:&nbsp;16;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;subtype&nbsp;:&nbsp;16;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;param&nbsp;:&nbsp;32<br>
+&nbsp;&nbsp;&nbsp;})&nbsp;;;<br>
+</code></pre>
+<p>
+
+   <h2 id="2_Loadingcreatingbitstrings">Loading, creating bitstrings</h2>
+<p>
+
+   The basic data type is the <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a>, a string of bits of
+   arbitrary length.  Bitstrings can be any length in bits and
+   operations do not need to be byte-aligned (although they will
+   generally be more efficient if they are byte-aligned).
+<p>
+
+   Internally a bitstring is stored as a normal OCaml <code class="code">string</code>
+   together with an offset and length, where the offset and length are
+   measured in bits.  Thus one can efficiently form substrings of
+   bitstrings, overlay a bitstring on existing data, and load and save
+   bitstrings from files or other external sources.
+<p>
+
+   To load a bitstring from a file use <a href="Bitstring.html#VALbitstring_of_file"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_file</code></a> or
+   <a href="Bitstring.html#VALbitstring_of_chan"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_chan</code></a>.
+<p>
+
+   There are also functions to create bitstrings from arbitrary data.
+   See the <a href="#reference">reference</a> below.
+<p>
+
+   <h2 id="2_Matchingbitstringswithpatterns">Matching bitstrings with patterns</h2>
+<p>
+
+   Use the <code class="code">bitmatch</code> operator (part of the syntax extension) to break
+   apart a bitstring into its fields.  <code class="code">bitmatch</code> works a lot like the
+   OCaml <code class="code"><span class="keyword">match</span></code> operator.
+<p>
+
+   The general form of <code class="code">bitmatch</code> is:
+<p>
+
+   <code class="code">bitmatch</code> <i>bitstring-expression</i> <code class="code"><span class="keyword">with</span></code>
+<p>
+
+   <code class="code"><span class="keywordsign">|</span> {</code> <i>pattern</i> <code class="code">} <span class="keywordsign">-&gt;</span></code> <i>code</i>
+<p>
+
+   <code class="code"><span class="keywordsign">|</span> {</code> <i>pattern</i> <code class="code">} <span class="keywordsign">-&gt;</span></code> <i>code</i>
+<p>
+
+   <code class="code"><span class="keywordsign">|</span></code> ...
+<p>
+
+   As with normal match, the statement attempts to match the
+   bitstring against each pattern in turn.  If none of the patterns
+   match then the standard library <code class="code"><span class="constructor">Match_failure</span></code> exception is
+   thrown.
+<p>
+
+   Patterns look a bit different from normal match patterns.  They
+   consist of a list of bitfields separated by <code class="code">;</code> where each bitfield
+   contains a bind variable, the width (in bits) of the field, and
+   other information.  Some example patterns:
+<p>
+
+<pre class="codepre"><code class="code">bitmatch&nbsp;bits&nbsp;<span class="keyword">with</span><br>
+<br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;version&nbsp;:&nbsp;8;&nbsp;name&nbsp;:&nbsp;8;&nbsp;param&nbsp;:&nbsp;8&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Bitstring&nbsp;of&nbsp;at&nbsp;least&nbsp;3&nbsp;bytes.&nbsp;&nbsp;First&nbsp;byte&nbsp;is&nbsp;the&nbsp;version<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number,&nbsp;second&nbsp;byte&nbsp;is&nbsp;a&nbsp;field&nbsp;called&nbsp;name,&nbsp;third&nbsp;byte&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;field&nbsp;called&nbsp;parameter.&nbsp;*)</span><br>
+<br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;flag&nbsp;:&nbsp;1&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"flag&nbsp;is&nbsp;%b\n"</span>&nbsp;flag<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;A&nbsp;single&nbsp;flag&nbsp;bit&nbsp;(mapped&nbsp;into&nbsp;an&nbsp;OCaml&nbsp;boolean).&nbsp;*)</span><br>
+<br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;len&nbsp;:&nbsp;4;&nbsp;data&nbsp;:&nbsp;1+len&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"len&nbsp;=&nbsp;%d,&nbsp;data&nbsp;=&nbsp;0x%Lx\n"</span>&nbsp;len&nbsp;data<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;A&nbsp;4-bit&nbsp;length,&nbsp;followed&nbsp;by&nbsp;1-16&nbsp;bits&nbsp;of&nbsp;data,&nbsp;where&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;length&nbsp;of&nbsp;the&nbsp;data&nbsp;is&nbsp;computed&nbsp;from&nbsp;len.&nbsp;*)</span><br>
+<br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;ipv6_source&nbsp;:&nbsp;128&nbsp;:&nbsp;bitstring;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ipv6_dest&nbsp;:&nbsp;128&nbsp;:&nbsp;bitstring&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;IPv6&nbsp;source&nbsp;and&nbsp;destination&nbsp;addresses.&nbsp;&nbsp;Each&nbsp;is&nbsp;128&nbsp;bits<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;is&nbsp;mapped&nbsp;into&nbsp;a&nbsp;bitstring&nbsp;type&nbsp;which&nbsp;will&nbsp;be&nbsp;a&nbsp;substring<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;the&nbsp;main&nbsp;bitstring&nbsp;expression.&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   You can also add conditional when-clauses:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keywordsign">|</span>&nbsp;{&nbsp;version&nbsp;:&nbsp;4&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">when</span>&nbsp;version&nbsp;=&nbsp;4&nbsp;<span class="keywordsign">||</span>&nbsp;version&nbsp;=&nbsp;6&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Only&nbsp;match&nbsp;and&nbsp;run&nbsp;the&nbsp;code&nbsp;when&nbsp;version&nbsp;is&nbsp;4&nbsp;or&nbsp;6.&nbsp;&nbsp;If<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;it&nbsp;isn't&nbsp;we&nbsp;will&nbsp;drop&nbsp;through&nbsp;to&nbsp;the&nbsp;next&nbsp;case.&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   Note that the pattern is only compared against the first part of
+   the bitstring (there may be more data in the bitstring following
+   the pattern, which is not matched).  In terms of regular
+   expressions you might say that the pattern matches <code class="code">^pattern</code>, not
+   <code class="code">^pattern$</code>.  To ensure that the bitstring contains only the
+   pattern, add a length -1 bitstring to the end and test that its
+   length is zero in the when-clause:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keywordsign">|</span>&nbsp;{&nbsp;n&nbsp;:&nbsp;4;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;rest&nbsp;:&nbsp;-1&nbsp;:&nbsp;bitstring&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">when</span>&nbsp;<span class="constructor">Bitstring</span>.bitstring_length&nbsp;rest&nbsp;=&nbsp;0&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Only&nbsp;matches&nbsp;exactly&nbsp;4&nbsp;bits.&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   Normally the first part of each field is a binding variable,
+   but you can also match a constant, as in:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keywordsign">|</span>&nbsp;{&nbsp;(4<span class="keywordsign">|</span>6)&nbsp;:&nbsp;4&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Only&nbsp;matches&nbsp;if&nbsp;the&nbsp;first&nbsp;4&nbsp;bits&nbsp;contain&nbsp;either<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;integer&nbsp;4&nbsp;or&nbsp;the&nbsp;integer&nbsp;6.&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   One may also match on strings:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keywordsign">|</span>&nbsp;{&nbsp;<span class="string">"MAGIC"</span>&nbsp;:&nbsp;5*8&nbsp;:&nbsp;string&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Only&nbsp;matches&nbsp;if&nbsp;the&nbsp;string&nbsp;"MAGIC"&nbsp;appears&nbsp;at&nbsp;the&nbsp;start<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;the&nbsp;input.&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   <h3 id="patternfieldreference">Pattern field reference</h3>
+<p>
+
+   The exact format of each pattern field is:
+<p>
+
+   <code class="code">pattern : length [: qualifier [,qualifier ...]]</code>
+<p>
+
+   <code class="code">pattern</code> is the pattern, binding variable name, or constant to
+   match.  <code class="code">length</code> is the length in bits which may be either a
+   constant or an expression.  The length expression is just an OCaml
+   expression and can use any values defined in the program, and refer
+   back to earlier fields (but not to later fields).
+<p>
+
+   Integers can only have lengths in the range [1..64] bits.  See the
+   <a href="#integertypes">integer types</a> section below for how these are
+   mapped to the OCaml int/int32/int64 types.  This is checked
+   at compile time if the length expression is constant, otherwise it is
+   checked at runtime and you will get a runtime exception eg. in
+   the case of a computed length expression.
+<p>
+
+   A bitstring field of length -1 matches all the rest of the
+   bitstring (thus this is only useful as the last field in a
+   pattern).
+<p>
+
+   A bitstring field of length 0 matches an empty bitstring
+   (occasionally useful when matching optional subfields).
+<p>
+
+   Qualifiers are a list of identifiers/expressions which control the type,
+   signedness and endianness of the field.  Permissible qualifiers are:
+<p>
+<ul>
+<li><code class="code">int</code>: field has an integer type</li>
+<li><code class="code">string</code>: field is a string type</li>
+<li><code class="code">bitstring</code>: field is a bitstring type</li>
+<li><code class="code">signed</code>: field is signed</li>
+<li><code class="code">unsigned</code>: field is unsigned</li>
+<li><code class="code">bigendian</code>: field is big endian - a.k.a network byte order</li>
+<li><code class="code">littleendian</code>: field is little endian - a.k.a Intel byte order</li>
+<li><code class="code">nativeendian</code>: field is same endianness as the machine</li>
+<li><code class="code">endian (expr)</code>: <code class="code">expr</code> should be an expression which evaluates to
+       a <a href="Bitstring.html#TYPEendian"><code class="code"><span class="constructor">Bitstring</span>.endian</code></a> type, ie. <code class="code"><span class="constructor">LittleEndian</span></code>, <code class="code"><span class="constructor">BigEndian</span></code> or <code class="code"><span class="constructor">NativeEndian</span></code>.
+       The expression is an arbitrary OCaml expression and can use the
+       value of earlier fields in the bitmatch.</li>
+<li><code class="code">offset (expr)</code>: see <a href="#computedoffsets">computed offsets</a> below.</li>
+</ul>
+
+   The default settings are <code class="code">int</code>, <code class="code">unsigned</code>, <code class="code">bigendian</code>, no offset.
+<p>
+
+   Note that many of these qualifiers cannot be used together,
+   eg. bitstrings do not have endianness.  The syntax extension should
+   give you a compile-time error if you use incompatible qualifiers.
+<p>
+
+   <h3 id="3_Othercasesinbitmatch">Other cases in bitmatch</h3>
+<p>
+
+   As well as a list of fields, it is possible to name the
+   bitstring and/or have a default match case:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keywordsign">|</span>&nbsp;{&nbsp;_&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Default&nbsp;match&nbsp;case.&nbsp;*)</span><br>
+<br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;_&nbsp;}&nbsp;<span class="keyword">as</span>&nbsp;pkt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Default&nbsp;match&nbsp;case,&nbsp;with&nbsp;'pkt'&nbsp;bound&nbsp;to&nbsp;the&nbsp;whole&nbsp;bitstring.&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   <h2 id="2_Constructingbitstrings">Constructing bitstrings</h2>
+<p>
+
+   Bitstrings may be constructed using the <code class="code"><span class="constructor">BITSTRING</span></code> operator (as an
+   expression).  The <code class="code"><span class="constructor">BITSTRING</span></code> operator takes a list of fields,
+   similar to the list of fields for matching:
+<p>
+
+<pre class="codepre"><code class="code"><span class="keyword">let</span>&nbsp;version&nbsp;=&nbsp;1&nbsp;;;<br>
+<span class="keyword">let</span>&nbsp;data&nbsp;=&nbsp;10&nbsp;;;<br>
+<span class="keyword">let</span>&nbsp;bits&nbsp;=<br>
+&nbsp;&nbsp;<span class="constructor">BITSTRING</span>&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;version&nbsp;:&nbsp;4;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data&nbsp;:&nbsp;12<br>
+&nbsp;&nbsp;}&nbsp;;;<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Constructs&nbsp;a&nbsp;16-bit&nbsp;bitstring&nbsp;with&nbsp;the&nbsp;first&nbsp;four&nbsp;bits&nbsp;containing<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;integer&nbsp;1,&nbsp;and&nbsp;the&nbsp;following&nbsp;12&nbsp;bits&nbsp;containing&nbsp;the&nbsp;integer&nbsp;10,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arranged&nbsp;in&nbsp;network&nbsp;byte&nbsp;order.&nbsp;*)</span><br>
+<br>
+<span class="constructor">Bitstring</span>.hexdump_bitstring&nbsp;stdout&nbsp;bits&nbsp;;;<br>
+<br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;Prints:<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000&nbsp;&nbsp;10&nbsp;0a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|..&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   The format of each field is the same as for pattern fields (see
+   <a href="#patternfieldreference">Pattern field reference section</a>), and
+   things like computed length fields, fixed value fields, insertion
+   of bitstrings within bitstrings, etc. are all supported.
+<p>
+
+   <h3 id="3_Constructionexception">Construction exception</h3>
+<p>
+
+   The <code class="code"><span class="constructor">BITSTRING</span></code> operator may throw a <a href="Bitstring.html#EXCEPTIONConstruct_failure"><code class="code"><span class="constructor">Bitstring</span>.<span class="constructor">Construct_failure</span></code></a>
+   exception at runtime.
+<p>
+
+   Runtime errors include:
+<p>
+<ul>
+<li>int field length not in the range [1..64]</li>
+<li>a bitstring with a length declared which doesn't have the
+     same length at runtime</li>
+<li>trying to insert an out of range value into an int field
+     (eg. an unsigned int field which is 2 bits wide can only
+     take values in the range [0..3]).</li>
+</ul>
+
+   <h2 id="integertypes">Integer types</h2>
+<p>
+
+   Integer types are mapped to OCaml types <code class="code">bool</code>, <code class="code">int</code>, <code class="code">int32</code> or
+   <code class="code">int64</code> using a system which tries to ensure that (a) the types are
+   reasonably predictable and (b) the most efficient type is
+   preferred.
+<p>
+
+   The rules are slightly different depending on whether the bit
+   length expression in the field is a compile-time constant or a
+   computed expression.
+<p>
+
+   Detection of compile-time constants is quite simplistic so only
+   simple integer literals and simple expressions (eg. <code class="code">5*8</code>) are
+   recognized as constants.
+<p>
+
+   In any case the bit size of an integer is limited to the range
+   [1..64].  This is detected as a compile-time error if that is
+   possible, otherwise a runtime check is added which can throw an
+   <code class="code"><span class="constructor">Invalid_argument</span></code> exception.
+<p>
+
+   The mapping is thus:
+<p>
+
+   <pre class="verbatim">   Bit size	    ---- OCaml type ----
+                Constant	Computed expression
+
+   1		bool		int64
+   2..31	int		int64
+   32		int32		int64
+   33..64	int64		int64
+  </pre>
+<p>
+
+   A possible future extension may allow people with 64 bit computers
+   to specify a more optimal <code class="code">int</code> type for bit sizes in the range
+   <code class="code">32..63</code>.  If this was implemented then such code <i>could not even
+   be compiled</i> on 32 bit platforms, so it would limit portability.
+<p>
+
+   Another future extension may be to allow computed
+   expressions to assert min/max range for the bit size,
+   allowing a more efficient data type than int64 to be
+   used.  (Of course under such circumstances there would
+   still need to be a runtime check to enforce the
+   size).
+<p>
+
+   <h2 id="2_Advancedpatternmatchingfeatures">Advanced pattern-matching features</h2>
+<p>
+
+   <h3 id="computedoffsets">Computed offsets</h3>
+<p>
+
+   You can add an <code class="code">offset(..)</code> qualifier to bitmatch patterns in order
+   to move the current offset within the bitstring forwards.
+<p>
+
+   For example:
+<p>
+
+<pre class="codepre"><code class="code">bitmatch&nbsp;bits&nbsp;<span class="keyword">with</span><br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;field1&nbsp;:&nbsp;8;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;field2&nbsp;:&nbsp;8&nbsp;:&nbsp;offset(160)&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+</code></pre>
+<p>
+
+   matches <code class="code">field1</code> at the start of the bitstring and <code class="code">field2</code>
+   at 160 bits into the bitstring.  The middle 152 bits go
+   unmatched (ie. can be anything).
+<p>
+
+   The generated code is efficient.  If field lengths and offsets
+   are known to be constant at compile time, then almost all
+   runtime checks are avoided.  Non-constant field lengths and/or
+   non-constant offsets can result in more runtime checks being added.
+<p>
+
+   Note that moving the offset backwards, and moving the offset in
+   <code class="code"><span class="constructor">BITSTRING</span></code> constructors, are both not supported at present.
+<p>
+
+   <h3 id="3_Checkexpressions">Check expressions</h3>
+<p>
+
+   You can add a <code class="code">check(expr)</code> qualifier to bitmatch patterns.
+   If the expression evaluates to false then the current match case
+   fails to match (in other words, we fall through to the next
+   match case - there is no error).
+<p>
+
+   For example:
+<pre class="codepre"><code class="code">bitmatch&nbsp;bits&nbsp;<span class="keyword">with</span><br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;field&nbsp;:&nbsp;16&nbsp;:&nbsp;check&nbsp;(field&nbsp;&gt;&nbsp;100)&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+</code></pre>
+<p>
+
+   Note the difference between a check expression and a when-clause
+   is that the when-clause is evaluated after all the fields have
+   been matched.  On the other hand a check expression is evaluated
+   after the individual field has been matched, which means it is
+   potentially more efficient (if the check expression fails then
+   we don't waste any time matching later fields).
+<p>
+
+   We wanted to use the notation <code class="code"><span class="keyword">when</span>(expr)</code> here, but because
+   <code class="code"><span class="keyword">when</span></code> is a reserved word we could not do this.
+<p>
+
+   <h3 id="3_Bindexpressions">Bind expressions</h3>
+<p>
+
+   A bind expression is used to change the value of a matched
+   field.  For example:
+<pre class="codepre"><code class="code">bitmatch&nbsp;bits&nbsp;<span class="keyword">with</span><br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;len&nbsp;:&nbsp;16&nbsp;:&nbsp;bind&nbsp;(len&nbsp;*&nbsp;8);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;field&nbsp;:&nbsp;len&nbsp;:&nbsp;bitstring&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+</code></pre>
+<p>
+
+   In the example, after 'len' has been matched, its value would
+   be multiplied by 8, so the width of 'field' is the matched
+   value multiplied by 8.
+<p>
+
+   In the general case:
+<pre class="codepre"><code class="code"><span class="keywordsign">|</span>&nbsp;{&nbsp;field&nbsp;:&nbsp;...&nbsp;:&nbsp;bind&nbsp;(expr)&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;...<br>
+</code></pre>
+   evaluates the following after the field has been matched:
+<pre class="codepre"><code class="code">&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;field&nbsp;=&nbsp;expr&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;<span class="comment">(*&nbsp;remaining&nbsp;fields&nbsp;*)</span><br>
+</code></pre>
+<p>
+
+   <h3 id="3_Orderofevaluationofcheckandbind">Order of evaluation of check() and bind()</h3>
+<p>
+
+   The choice is arbitrary, but we have chosen that check expressions
+   are evaluated first, and bind expressions are evaluated after.
+<p>
+
+   This means that the result of bind() is <i>not</i> available in
+   the check expression.
+<p>
+
+   Note that this rule applies regardless of the order of check()
+   and bind() in the source code.
+<p>
+
+   <h3 id="3_saveoffsetto">save_offset_to</h3>
+<p>
+
+   Use <code class="code">save_offset_to(variable)</code> to save the current bit offset
+   within the match to a variable (strictly speaking, to a pattern).
+   This variable is then made available in any <code class="code">check()</code> and <code class="code">bind()</code>
+   clauses in the current field, <i>and</i> to any later fields, and
+   to the code after the <code class="code"><span class="keywordsign">-&gt;</span></code>.
+<p>
+
+   For example:
+<pre class="codepre"><code class="code">bitmatch&nbsp;bits&nbsp;<span class="keyword">with</span><br>
+<span class="keywordsign">|</span>&nbsp;{&nbsp;len&nbsp;:&nbsp;16;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;_&nbsp;:&nbsp;len&nbsp;:&nbsp;bitstring;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;field&nbsp;:&nbsp;16&nbsp;:&nbsp;save_offset_to&nbsp;(field_offset)&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf&nbsp;<span class="string">"field&nbsp;is&nbsp;at&nbsp;bit&nbsp;offset&nbsp;%d&nbsp;in&nbsp;the&nbsp;match\n"</span>&nbsp;field_offset<br>
+</code></pre>
+<p>
+
+   (In that example, <code class="code">field_offset</code> should always have the value
+   <code class="code">len+16</code>).
+<p>
+
+   <h2 id="2_Namedpatternsandpersistentpatterns">Named patterns and persistent patterns</h2>
+<p>
+
+   Please see <a href="Bitstring_persistent.html"><code class="code"><span class="constructor">Bitstring_persistent</span></code></a> for documentation on this subject.
+<p>
+
+   <h2 id="2_Compiling">Compiling</h2>
+<p>
+
+   Using the compiler directly you can do:
+<p>
+
+   <pre class="verbatim">   ocamlc -I +bitstring \
+     -pp "camlp4of bitstring.cma bitstring_persistent.cma \
+            `ocamlc -where`/bitstring/pa_bitstring.cmo" \
+     unix.cma bitstring.cma test.ml -o test
+  </pre>
+<p>
+
+   Simpler method using findlib:
+<p>
+
+   <pre class="verbatim">   ocamlfind ocamlc \
+     -package bitstring,bitstring.syntax -syntax bitstring.syntax \
+     -linkpkg test.ml -o test
+  </pre>
+<p>
+
+   <h2 id="2_Securityandtypesafety">Security and type safety</h2>
+<p>
+
+   <h3 id="3_Securityoninput">Security on input</h3>
+<p>
+
+   The main concerns for input are buffer overflows and denial
+   of service.
+<p>
+
+   It is believed that this library is robust against attempted buffer
+   overflows.  In addition to OCaml's normal bounds checks, we check
+   that field lengths are &gt;= 0, and many additional checks.
+<p>
+
+   Denial of service attacks are more problematic.  We only work
+   forwards through the bitstring, thus computation will eventually
+   terminate.  As for computed lengths, code such as this is thought
+   to be secure:
+<p>
+
+   <pre class="codepre"><code class="code">&nbsp;&nbsp;&nbsp;bitmatch&nbsp;bits&nbsp;<span class="keyword">with</span><br>
+&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;{&nbsp;len&nbsp;:&nbsp;64;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer&nbsp;:&nbsp;<span class="constructor">Int64</span>.to_int&nbsp;len&nbsp;:&nbsp;bitstring&nbsp;}&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;</code></pre>
+<p>
+
+   The <code class="code">len</code> field can be set arbitrarily large by an attacker, but
+   when pattern-matching against the <code class="code">buffer</code> field this merely causes
+   a test such as <code class="code"><span class="keyword">if</span> len &lt;= remaining_size</code> to fail.  Even if the
+   length is chosen so that <code class="code">buffer</code> bitstring is allocated, the
+   allocation of sub-bitstrings is efficient and doesn't involve an
+   arbitary-sized allocation or any copying.
+<p>
+
+   However the above does not necessarily apply to strings used in
+   matching, since they may cause the library to use the
+   <a href="Bitstring.html#VALstring_of_bitstring"><code class="code"><span class="constructor">Bitstring</span>.string_of_bitstring</code></a> function, which allocates a string.
+   So you should take care if you use the <code class="code">string</code> type particularly
+   with a computed length that is derived from external input.
+<p>
+
+   The main protection against attackers should be to ensure that the
+   main program will only read input bitstrings up to a certain
+   length, which is outside the scope of this library.
+<p>
+
+   <h3 id="3_Securityonoutput">Security on output</h3>
+<p>
+
+   As with the input side, computed lengths are believed to be
+   safe.  For example:
+<p>
+
+   <pre class="codepre"><code class="code">&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;len&nbsp;=&nbsp;read_untrusted_source&nbsp;()&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;buffer&nbsp;=&nbsp;allocate_bitstring&nbsp;()&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;<span class="constructor">BITSTRING</span>&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer&nbsp;:&nbsp;len&nbsp;:&nbsp;bitstring<br>
+&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;</code></pre>
+<p>
+
+   This code merely causes a check that buffer's length is the same as
+   <code class="code">len</code>.  However the program function <code class="code">allocate_bitstring</code> must
+   refuse to allocate an oversized buffer (but that is outside the
+   scope of this library).
+<p>
+
+   <h3 id="3_Orderofevaluation">Order of evaluation</h3>
+<p>
+
+   In <code class="code">bitmatch</code> statements, fields are evaluated left to right.
+<p>
+
+   Note that the when-clause is evaluated <i>last</i>, so if you are
+   relying on the when-clause to filter cases then your code may do a
+   lot of extra and unncessary pattern-matching work on fields which
+   may never be needed just to evaluate the when-clause.  Either
+   rearrange the code to do only the first part of the match,
+   followed by the when-clause, followed by a second inner bitmatch,
+   or use a <code class="code">check()</code> qualifier within fields.
+<p>
+
+   <h3 id="3_Safety">Safety</h3>
+<p>
+
+   The current implementation is believed to be fully type-safe,
+   and makes compile and run-time checks where appropriate.  If
+   you find a case where a check is missing please submit a
+   bug report or a patch.
+<p>
+
+   <h2 id="2_Limits">Limits</h2>
+<p>
+
+   These are thought to be the current limits:
+<p>
+
+   Integers: [1..64] bits.
+<p>
+
+   Bitstrings (32 bit platforms): maximum length is limited
+   by the string size, ie. 16 MBytes.
+<p>
+
+   Bitstrings (64 bit platforms): maximum length is thought to be
+   limited by the string size, ie. effectively unlimited.
+<p>
+
+   Bitstrings must be loaded into memory before we can match against
+   them.  Thus available memory may be considered a limit for some
+   applications.
+<p>
+
+   <h2 id="reference">Reference</h2>
+   <h3 id="3_Types">Types</h3><br>
+
+<pre><code><span id="TYPEendian"><span class="keyword">type</span> <code class="type"></code>endian</span> = </code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTendian.BigEndian"><span class="constructor">BigEndian</span></span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTendian.LittleEndian"><span class="constructor">LittleEndian</span></span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTendian.NativeEndian"><span class="constructor">NativeEndian</span></span></code></td>
+
+</tr></table>
+
+
+
+<pre><span id="VALstring_of_endian"><span class="keyword">val</span> string_of_endian</span> : <code class="type"><a href="Bitstring.html#TYPEendian">endian</a> -> string</code></pre><div class="info ">
+Endianness.<br>
+</div>
+
+<pre><span id="TYPEbitstring"><span class="keyword">type</span> <code class="type"></code>bitstring</span> = <code class="type">string * int * int</code> </pre>
+<div class="info ">
+<code class="code">bitstring</code> is the basic type used to store bitstrings.
+<p>
+
+    The type contains the underlying data (a string),
+    the current bit offset within the string and the
+    current bit length of the string (counting from the
+    bit offset).  Note that the offset and length are
+    in <b>bits</b>, not bytes.
+<p>
+
+    Normally you don't need to use the bitstring type
+    directly, since there are functions and syntax
+    extensions which hide the details.
+<p>
+
+    See also <a href="Bitstring.html#VALbitstring_of_string"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_string</code></a>, <a href="Bitstring.html#VALbitstring_of_file"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_file</code></a>,
+    <a href="Bitstring.html#VALhexdump_bitstring"><code class="code"><span class="constructor">Bitstring</span>.hexdump_bitstring</code></a>, <a href="Bitstring.html#VALbitstring_length"><code class="code"><span class="constructor">Bitstring</span>.bitstring_length</code></a>.<br>
+</div>
+
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a></code> </pre>
+<div class="info ">
+<code class="code">t</code> is a synonym for the <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a> type.
+<p>
+
+    This allows you to use this module with functors like
+    <code class="code"><span class="constructor">Set</span></code> and <code class="code"><span class="constructor">Map</span></code> from the stdlib.<br>
+</div>
+
+<br>
+<h3 id="3_Exceptions">Exceptions</h3><br>
+
+<pre><span id="EXCEPTIONConstruct_failure"><span class="keyword">exception</span> Construct_failure</span> <span class="keyword">of</span> <code class="type">string * string * int * int</code></pre>
+<div class="info ">
+<code class="code"><span class="constructor">Construct_failure</span> (message, file, line, char)</code> may be
+    raised by the <code class="code"><span class="constructor">BITSTRING</span></code> constructor.
+<p>
+
+    Common reasons are that values are out of range of
+    the fields that contain them, or that computed lengths
+    are impossible (eg. negative length bitfields).
+<p>
+
+    <code class="code">message</code> is the error message.
+<p>
+
+    <code class="code">file</code>, <code class="code">line</code> and <code class="code">char</code> point to the original source
+    location of the <code class="code"><span class="constructor">BITSTRING</span></code> constructor that failed.<br>
+</div>
+<br>
+<h3 id="3_Bitstringcomparison">Bitstring comparison</h3><br>
+
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> <a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int</code></pre><div class="info ">
+<code class="code">compare bs1 bs2</code> compares two bitstrings and returns zero
+    if they are equal, a negative number if <code class="code">bs1 &lt; bs2</code>, or a
+    positive number if <code class="code">bs1 &gt; bs2</code>.
+<p>
+
+    This tests "semantic equality" which is not affected by
+    the offset or alignment of the underlying representation
+    (see <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a>).
+<p>
+
+    The ordering is total and lexicographic.<br>
+</div>
+
+<pre><span id="VALequals"><span class="keyword">val</span> equals</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> <a href="Bitstring.html#TYPEbitstring">bitstring</a> -> bool</code></pre><div class="info ">
+<code class="code">equals</code> returns true if and only if the two bitstrings are
+    semantically equal.  It is the same as calling <code class="code">compare</code> and
+    testing if the result is <code class="code">0</code>, but usually more efficient.<br>
+</div>
+
+<pre><span id="VALis_zeroes_bitstring"><span class="keyword">val</span> is_zeroes_bitstring</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> bool</code></pre><div class="info ">
+Tests if the bitstring is all zero bits (cf. <a href="Bitstring.html#VALzeroes_bitstring"><code class="code"><span class="constructor">Bitstring</span>.zeroes_bitstring</code></a>)<br>
+</div>
+
+<pre><span id="VALis_ones_bitstring"><span class="keyword">val</span> is_ones_bitstring</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> bool</code></pre><div class="info ">
+Tests if the bitstring is all one bits (cf. <a href="Bitstring.html#VALones_bitstring"><code class="code"><span class="constructor">Bitstring</span>.ones_bitstring</code></a>).<br>
+</div>
+<br>
+<h3 id="3_Bitstringmanipulation">Bitstring manipulation</h3><br>
+
+<pre><span id="VALbitstring_length"><span class="keyword">val</span> bitstring_length</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int</code></pre><div class="info ">
+<code class="code">bitstring_length bitstring</code> returns the length of
+    the bitstring in bits.
+<p>
+
+    Note this just returns the third field in the <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a> tuple.<br>
+</div>
+
+<pre><span id="VALsubbitstring"><span class="keyword">val</span> subbitstring</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int -> int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">subbitstring bits off len</code> returns a sub-bitstring
+    of the bitstring, starting at offset <code class="code">off</code> bits and
+    with length <code class="code">len</code> bits.
+<p>
+
+    If the original bitstring is not long enough to do this
+    then the function raises <code class="code"><span class="constructor">Invalid_argument</span> <span class="string">"subbitstring"</span></code>.
+<p>
+
+    Note that this function just changes the offset and length
+    fields of the <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a> tuple, so is very efficient.<br>
+</div>
+
+<pre><span id="VALdropbits"><span class="keyword">val</span> dropbits</span> : <code class="type">int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a> -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+Drop the first n bits of the bitstring and return a new
+    bitstring which is shorter by n bits.
+<p>
+
+    If the length of the original bitstring is less than n bits,
+    this raises <code class="code"><span class="constructor">Invalid_argument</span> <span class="string">"dropbits"</span></code>.
+<p>
+
+    Note that this function just changes the offset and length
+    fields of the <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a> tuple, so is very efficient.<br>
+</div>
+
+<pre><span id="VALtakebits"><span class="keyword">val</span> takebits</span> : <code class="type">int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a> -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+Take the first n bits of the bitstring and return a new
+    bitstring which is exactly n bits long.
+<p>
+
+    If the length of the original bitstring is less than n bits,
+    this raises <code class="code"><span class="constructor">Invalid_argument</span> <span class="string">"takebits"</span></code>.
+<p>
+
+    Note that this function just changes the offset and length
+    fields of the <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a> tuple, so is very efficient.<br>
+</div>
+
+<pre><span id="VALconcat"><span class="keyword">val</span> concat</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> list -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+Concatenate a list of bitstrings together into a single
+    bitstring.<br>
+</div>
+<br>
+<h3 id="3_Constructingbitstrings">Constructing bitstrings</h3><br>
+
+<pre><span id="VALempty_bitstring"><span class="keyword">val</span> empty_bitstring</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">empty_bitstring</code> is the empty, zero-length bitstring.<br>
+</div>
+
+<pre><span id="VALcreate_bitstring"><span class="keyword">val</span> create_bitstring</span> : <code class="type">int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">create_bitstring n</code> creates an <code class="code">n</code> bit bitstring
+    containing all zeroes.<br>
+</div>
+
+<pre><span id="VALmake_bitstring"><span class="keyword">val</span> make_bitstring</span> : <code class="type">int -> char -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">make_bitstring n c</code> creates an <code class="code">n</code> bit bitstring
+    containing the repeated 8 bit pattern in <code class="code">c</code>.
+<p>
+
+    For example, <code class="code">make_bitstring 16 '\x5a'</code> will create
+    the bitstring <code class="code">0x5a5a</code> or in binary <code class="code">0101 1010 0101 1010</code>.
+<p>
+
+    Note that the length is in bits, not bytes.  The length does NOT
+    need to be a multiple of 8.<br>
+</div>
+
+<pre><span id="VALzeroes_bitstring"><span class="keyword">val</span> zeroes_bitstring</span> : <code class="type">int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">zeroes_bitstring</code> creates an <code class="code">n</code> bit bitstring of all 0's.
+<p>
+
+    Actually this is the same as <a href="Bitstring.html#VALcreate_bitstring"><code class="code"><span class="constructor">Bitstring</span>.create_bitstring</code></a>.<br>
+</div>
+
+<pre><span id="VALones_bitstring"><span class="keyword">val</span> ones_bitstring</span> : <code class="type">int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">ones_bitstring</code> creates an <code class="code">n</code> bit bitstring of all 1's.<br>
+</div>
+
+<pre><span id="VALbitstring_of_string"><span class="keyword">val</span> bitstring_of_string</span> : <code class="type">string -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">bitstring_of_string str</code> creates a bitstring
+    of length <code class="code"><span class="constructor">String</span>.length str * 8</code> (bits) containing the
+    bits in <code class="code">str</code>.
+<p>
+
+    Note that the bitstring uses <code class="code">str</code> as the underlying
+    string (see the representation of <a href="Bitstring.html#TYPEbitstring"><code class="code"><span class="constructor">Bitstring</span>.bitstring</code></a>) so you
+    should not change <code class="code">str</code> after calling this.<br>
+</div>
+
+<pre><span id="VALbitstring_of_file"><span class="keyword">val</span> bitstring_of_file</span> : <code class="type">string -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">bitstring_of_file filename</code> loads the named file
+    into a bitstring.<br>
+</div>
+
+<pre><span id="VALbitstring_of_chan"><span class="keyword">val</span> bitstring_of_chan</span> : <code class="type">Pervasives.in_channel -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">bitstring_of_chan chan</code> loads the contents of
+    the input channel <code class="code">chan</code> as a bitstring.
+<p>
+
+    The length of the final bitstring is determined
+    by the remaining input in <code class="code">chan</code>, but will always
+    be a multiple of 8 bits.
+<p>
+
+    See also <a href="Bitstring.html#VALbitstring_of_chan_max"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_chan_max</code></a>.<br>
+</div>
+
+<pre><span id="VALbitstring_of_chan_max"><span class="keyword">val</span> bitstring_of_chan_max</span> : <code class="type">Pervasives.in_channel -> int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">bitstring_of_chan_max chan max</code> works like
+    <a href="Bitstring.html#VALbitstring_of_chan"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_chan</code></a> but will only read up to
+    <code class="code">max</code> bytes from the channel (or fewer if the end of input
+    occurs before that).<br>
+</div>
+
+<pre><span id="VALbitstring_of_file_descr"><span class="keyword">val</span> bitstring_of_file_descr</span> : <code class="type">Unix.file_descr -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">bitstring_of_file_descr fd</code> loads the contents of
+    the file descriptor <code class="code">fd</code> as a bitstring.
+<p>
+
+    See also <a href="Bitstring.html#VALbitstring_of_chan"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_chan</code></a>, <a href="Bitstring.html#VALbitstring_of_file_descr_max"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_file_descr_max</code></a>.<br>
+</div>
+
+<pre><span id="VALbitstring_of_file_descr_max"><span class="keyword">val</span> bitstring_of_file_descr_max</span> : <code class="type">Unix.file_descr -> int -> <a href="Bitstring.html#TYPEbitstring">bitstring</a></code></pre><div class="info ">
+<code class="code">bitstring_of_file_descr_max fd max</code> works like
+    <a href="Bitstring.html#VALbitstring_of_file_descr"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_file_descr</code></a> but will only read up to
+    <code class="code">max</code> bytes from the channel (or fewer if the end of input
+    occurs before that).<br>
+</div>
+<br>
+<h3 id="3_Convertingbitstrings">Converting bitstrings</h3><br>
+
+<pre><span id="VALstring_of_bitstring"><span class="keyword">val</span> string_of_bitstring</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> string</code></pre><div class="info ">
+<code class="code">string_of_bitstring bitstring</code> converts a bitstring to a string
+    (eg. to allow comparison).
+<p>
+
+    This function is inefficient.  In the best case when the bitstring
+    is nicely byte-aligned we do a <code class="code"><span class="constructor">String</span>.sub</code> operation.  If the
+    bitstring isn't aligned then this involves a lot of bit twiddling
+    and is particularly inefficient.
+<p>
+
+    If the bitstring is not a multiple of 8 bits wide then the
+    final byte of the string contains the high bits set to the
+    remaining bits and the low bits set to 0.<br>
+</div>
+
+<pre><span id="VALbitstring_to_file"><span class="keyword">val</span> bitstring_to_file</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> string -> unit</code></pre><div class="info ">
+<code class="code">bitstring_to_file bits filename</code> writes the bitstring <code class="code">bits</code>
+    to the file <code class="code">filename</code>.  It overwrites the output file.
+<p>
+
+    Some restrictions apply, see <a href="Bitstring.html#VALbitstring_to_chan"><code class="code"><span class="constructor">Bitstring</span>.bitstring_to_chan</code></a>.<br>
+</div>
+
+<pre><span id="VALbitstring_to_chan"><span class="keyword">val</span> bitstring_to_chan</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> Pervasives.out_channel -> unit</code></pre><div class="info ">
+<code class="code">bitstring_to_file bits filename</code> writes the bitstring <code class="code">bits</code>
+    to the channel <code class="code">chan</code>.
+<p>
+
+    Channels are made up of bytes, bitstrings can be any bit length
+    including fractions of bytes.  So this function only works
+    if the length of the bitstring is an exact multiple of 8 bits
+    (otherwise it raises <code class="code"><span class="constructor">Invalid_argument</span> <span class="string">"bitstring_to_chan"</span></code>).
+<p>
+
+    Furthermore the function is efficient only in the case where
+    the bitstring is stored fully aligned, otherwise it has to
+    do inefficient bit twiddling like <a href="Bitstring.html#VALstring_of_bitstring"><code class="code"><span class="constructor">Bitstring</span>.string_of_bitstring</code></a>.
+<p>
+
+    In the common case where the bitstring was generated by the
+    <code class="code"><span class="constructor">BITSTRING</span></code> operator and is an exact multiple of 8 bits wide,
+    then this function will always work efficiently.<br>
+</div>
+<br>
+<h3 id="3_Printingbitstrings">Printing bitstrings</h3><br>
+
+<pre><span id="VALhexdump_bitstring"><span class="keyword">val</span> hexdump_bitstring</span> : <code class="type">Pervasives.out_channel -> <a href="Bitstring.html#TYPEbitstring">bitstring</a> -> unit</code></pre><div class="info ">
+<code class="code">hexdump_bitstring chan bitstring</code> prints the bitstring
+    to the output channel in a format similar to the
+    Unix command <code class="code">hexdump -<span class="constructor">C</span></code>.<br>
+</div>
+<br>
+<h3 id="3_Bitstringbuffer">Bitstring buffer</h3><br>
+
+<pre><span class="keyword">module</span> <a href="Bitstring.Buffer.html">Buffer</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Bitstring.Buffer.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Buffers are mainly used by the <code class="code"><span class="constructor">BITSTRING</span></code> constructor, but
+    may also be useful for end users.
+</div>
+<br>
+<h3 id="3_Getsetbits">Get/set bits</h3>
+<p>
+
+    These functions let you manipulate individual bits in the
+    bitstring.  However they are not particularly efficient and you
+    should generally use the <code class="code">bitmatch</code> and <code class="code"><span class="constructor">BITSTRING</span></code> operators when
+    building and parsing bitstrings.
+<p>
+
+    These functions all raise <code class="code"><span class="constructor">Invalid_argument</span> <span class="string">"index out of bounds"</span></code>
+    if the index is out of range of the bitstring.<br>
+
+<pre><span id="VALset"><span class="keyword">val</span> set</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int -> unit</code></pre><div class="info ">
+<code class="code">set bits n</code> sets the <code class="code">n</code>th bit in the bitstring to 1.<br>
+</div>
+
+<pre><span id="VALclear"><span class="keyword">val</span> clear</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int -> unit</code></pre><div class="info ">
+<code class="code">clear bits n</code> sets the <code class="code">n</code>th bit in the bitstring to 0.<br>
+</div>
+
+<pre><span id="VALis_set"><span class="keyword">val</span> is_set</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int -> bool</code></pre><div class="info ">
+<code class="code">is_set bits n</code> is true if the <code class="code">n</code>th bit is set to 1.<br>
+</div>
+
+<pre><span id="VALis_clear"><span class="keyword">val</span> is_clear</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int -> bool</code></pre><div class="info ">
+<code class="code">is_clear bits n</code> is true if the <code class="code">n</code>th bit is set to 0.<br>
+</div>
+
+<pre><span id="VALput"><span class="keyword">val</span> put</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int -> int -> unit</code></pre><div class="info ">
+<code class="code">put bits n v</code> sets the <code class="code">n</code>th bit in the bitstring to 1
+      if <code class="code">v</code> is not zero, or to 0 if <code class="code">v</code> is zero.<br>
+</div>
+
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type"><a href="Bitstring.html#TYPEbitstring">bitstring</a> -> int -> int</code></pre><div class="info ">
+<code class="code">get bits n</code> returns the <code class="code">n</code>th bit (returns non-zero or 0).<br>
+</div>
+<br>
+<h3 id="3_Miscellaneous">Miscellaneous</h3><br>
+
+<pre><span id="VALdebug"><span class="keyword">val</span> debug</span> : <code class="type">bool Pervasives.ref</code></pre><div class="info ">
+Set this variable to true to enable extended debugging.
+    This only works if debugging was also enabled in the
+    <code class="code">pa_bitstring.ml</code> file at compile time, otherwise it
+    does nothing.<br>
+</div>
+</body></html>

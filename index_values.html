@@ -1,0 +1,480 @@
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Bitstring" rel="Chapter" href="Bitstring.html">
+<link title="Bitstring_persistent" rel="Chapter" href="Bitstring_persistent.html">
+<link title="Bitstring_types" rel="Chapter" href="Bitstring_types.html"><title>Index of values</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;</div>
+<h1>Index of values</h1>
+<table>
+<tr><td align="left"><br>A</td></tr>
+<tr><td><a href="Bitstring.Buffer.html#VALadd_bit">add_bit</a> [<a href="Bitstring.Buffer.html">Bitstring.Buffer</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring.Buffer.html#VALadd_bits">add_bits</a> [<a href="Bitstring.Buffer.html">Bitstring.Buffer</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring.Buffer.html#VALadd_byte">add_byte</a> [<a href="Bitstring.Buffer.html">Bitstring.Buffer</a>]</td>
+<td></td></tr>
+<tr><td align="left"><br>B</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_length">bitstring_length</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_length bitstring</code> returns the length of
+    the bitstring in bits.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_of_chan">bitstring_of_chan</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_of_chan chan</code> loads the contents of
+    the input channel <code class="code">chan</code> as a bitstring.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_of_chan_max">bitstring_of_chan_max</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_of_chan_max chan max</code> works like
+    <a href="Bitstring.html#VALbitstring_of_chan"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_chan</code></a> but will only read up to
+    <code class="code">max</code> bytes from the channel (or fewer if the end of input
+    occurs before that).
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_of_file">bitstring_of_file</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_of_file filename</code> loads the named file
+    into a bitstring.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_of_file_descr">bitstring_of_file_descr</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_of_file_descr fd</code> loads the contents of
+    the file descriptor <code class="code">fd</code> as a bitstring.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_of_file_descr_max">bitstring_of_file_descr_max</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_of_file_descr_max fd max</code> works like
+    <a href="Bitstring.html#VALbitstring_of_file_descr"><code class="code"><span class="constructor">Bitstring</span>.bitstring_of_file_descr</code></a> but will only read up to
+    <code class="code">max</code> bytes from the channel (or fewer if the end of input
+    occurs before that).
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_of_string">bitstring_of_string</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_of_string str</code> creates a bitstring
+    of length <code class="code"><span class="constructor">String</span>.length str * 8</code> (bits) containing the
+    bits in <code class="code">str</code>.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_to_chan">bitstring_to_chan</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_to_file bits filename</code> writes the bitstring <code class="code">bits</code>
+    to the channel <code class="code">chan</code>.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALbitstring_to_file">bitstring_to_file</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">bitstring_to_file bits filename</code> writes the bitstring <code class="code">bits</code>
+    to the file <code class="code">filename</code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>C</td></tr>
+<tr><td><a href="Bitstring.html#VALclear">clear</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">clear bits n</code> sets the <code class="code">n</code>th bit in the bitstring to 0.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALcompare">compare</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">compare bs1 bs2</code> compares two bitstrings and returns zero
+    if they are equal, a negative number if <code class="code">bs1 &lt; bs2</code>, or a
+    positive number if <code class="code">bs1 &gt; bs2</code>.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALconcat">concat</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+Concatenate a list of bitstrings together into a single
+    bitstring.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.Buffer.html#VALcontents">contents</a> [<a href="Bitstring.Buffer.html">Bitstring.Buffer</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring.Buffer.html#VALcreate">create</a> [<a href="Bitstring.Buffer.html">Bitstring.Buffer</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring.html#VALcreate_bitstring">create_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">create_bitstring n</code> creates an <code class="code">n</code> bit bitstring
+    containing all zeroes.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALcreate_constructor_field">create_constructor_field</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Create a constructor field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALcreate_pattern_field">create_pattern_field</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Create a pattern field.
+</div>
+</td></tr>
+<tr><td align="left"><br>D</td></tr>
+<tr><td><a href="Bitstring.html#VALdebug">debug</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+Set this variable to true to enable extended debugging.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALdropbits">dropbits</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+Drop the first n bits of the bitstring and return a new
+    bitstring which is shorter by n bits.
+</div>
+</td></tr>
+<tr><td align="left"><br>E</td></tr>
+<tr><td><a href="Bitstring.html#VALempty_bitstring">empty_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">empty_bitstring</code> is the empty, zero-length bitstring.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALequals">equals</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">equals</code> returns true if and only if the two bitstrings are
+    semantically equal.
+</div>
+</td></tr>
+<tr><td align="left"><br>G</td></tr>
+<tr><td><a href="Bitstring.html#VALget">get</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">get bits n</code> returns the <code class="code">n</code>th bit (returns non-zero or 0).
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_bind">get_bind</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the bind expression of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_check">get_check</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the check expression of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_endian">get_endian</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the endianness of a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_expr">get_expr</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the expression from an expression field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_length">get_length</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the length in bits from a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_location">get_location</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the source code location of a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_offset">get_offset</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the offset expression of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_patt">get_patt</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the pattern from a pattern field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_save_offset_to">get_save_offset_to</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the save_offset_to pattern of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_signed">get_signed</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the signedness of a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALget_type">get_type</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Get the type of a field, <code class="code"><span class="constructor">Int</span></code>, <code class="code"><span class="constructor">String</span></code> or <code class="code"><span class="constructor">Bitstring</span></code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>H</td></tr>
+<tr><td><a href="Bitstring.html#VALhexdump_bitstring">hexdump_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">hexdump_bitstring chan bitstring</code> prints the bitstring
+    to the output channel in a format similar to the
+    Unix command <code class="code">hexdump -<span class="constructor">C</span></code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>I</td></tr>
+<tr><td><a href="Bitstring.html#VALis_clear">is_clear</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">is_clear bits n</code> is true if the <code class="code">n</code>th bit is set to 0.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALis_ones_bitstring">is_ones_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+Tests if the bitstring is all one bits (cf.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALis_set">is_set</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">is_set bits n</code> is true if the <code class="code">n</code>th bit is set to 1.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALis_zeroes_bitstring">is_zeroes_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+Tests if the bitstring is all zero bits (cf.
+</div>
+</td></tr>
+<tr><td align="left"><br>M</td></tr>
+<tr><td><a href="Bitstring.html#VALmake_bitstring">make_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">make_bitstring n c</code> creates an <code class="code">n</code> bit bitstring
+    containing the repeated 8 bit pattern in <code class="code">c</code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>N</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALnamed_from_channel">named_from_channel</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Load a pattern/constructor from an output channel.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALnamed_from_string">named_from_string</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Load a pattern/constructor from a string at offset within the string.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALnamed_to_buffer">named_to_buffer</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Serialize a pattern/constructor to part of a string, return the length.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALnamed_to_channel">named_to_channel</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Save a pattern/constructor to an output channel.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALnamed_to_string">named_to_string</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Serialize a pattern/constructor to a string.
+</div>
+</td></tr>
+<tr><td align="left"><br>O</td></tr>
+<tr><td><a href="Bitstring.html#VALones_bitstring">ones_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">ones_bitstring</code> creates an <code class="code">n</code> bit bitstring of all 1's.
+</div>
+</td></tr>
+<tr><td align="left"><br>P</td></tr>
+<tr><td><a href="Bitstring.html#VALput">put</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">put bits n v</code> sets the <code class="code">n</code>th bit in the bitstring to 1
+      if <code class="code">v</code> is not zero, or to 0 if <code class="code">v</code> is zero.
+</div>
+</td></tr>
+<tr><td align="left"><br>S</td></tr>
+<tr><td><a href="Bitstring.html#VALset">set</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">set bits n</code> sets the <code class="code">n</code>th bit in the bitstring to 1.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_bind">set_bind</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Set the bind-expression for a field to the given expression.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_check">set_check</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Set the check expression for a field to the given expression.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_endian">set_endian</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the endianness of a field to the constant endianness.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_endian_expr">set_endian_expr</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the endianness of a field to an endianness expression.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_expr">set_expr</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the expression field to an arbitrary OCaml expression.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_int_expr">set_int_expr</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the expression to the value of the integer.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_int_patt">set_int_patt</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the pattern field to the pattern which matches an integer.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_length">set_length</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the length in bits of a field to an OCaml expression.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_length_int">set_length_int</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the length in bits of a field to a constant integer.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_lident_expr">set_lident_expr</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the expression in a constructor field to an expression
+    which uses the identifier.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_lident_patt">set_lident_patt</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the pattern to the pattern binding an identifier
+    given in the string.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_location">set_location</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the source code location of a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_no_bind">set_no_bind</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Remove the bind-expression from a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_no_check">set_no_check</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Remove the check expression from a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_no_offset">set_no_offset</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Remove the offset expression from a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_no_save_offset_to">set_no_save_offset_to</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Remove the save_offset_to from a field.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_offset">set_offset</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Set the offset expression for a field to the given expression.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_offset_int">set_offset_int</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Set the offset expression for a field to the given number.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_patt">set_patt</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the pattern field to an arbitrary OCaml pattern match.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_save_offset_to">set_save_offset_to</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Set the save_offset_to pattern for a field to the given pattern.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_save_offset_to_lident">set_save_offset_to_lident</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Set the save_offset_to pattern for a field to identifier.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_signed">set_signed</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the signedness of a field to a constant signedness.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_string_expr">set_string_expr</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the expression to the value of the string.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_string_patt">set_string_patt</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the pattern field to the pattern which matches a string.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_type_bitstring">set_type_bitstring</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the type of a field to <code class="code">bitstring</code>.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_type_int">set_type_int</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the type of a field to <code class="code">int</code>.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_type_string">set_type_string</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the type of a field to <code class="code">string</code>.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALset_unbound_patt">set_unbound_patt</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Sets the pattern field to the unbound pattern (usually written <code class="code">_</code>).
+</div>
+</td></tr>
+<tr><td><a href="Bitstring.html#VALstring_of_bitstring">string_of_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">string_of_bitstring bitstring</code> converts a bitstring to a string
+    (eg.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALstring_of_constructor">string_of_constructor</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALstring_of_constructor_field">string_of_constructor_field</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td><div class="info">
+Convert patterns, constructors or individual fields
+    into printable strings for debugging purposes.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_types.html#VALstring_of_endian">string_of_endian</a> [<a href="Bitstring_types.html">Bitstring_types</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring.html#VALstring_of_endian">string_of_endian</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+Endianness.
+</div>
+</td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALstring_of_pattern">string_of_pattern</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring_persistent.html#VALstring_of_pattern_field">string_of_pattern_field</a> [<a href="Bitstring_persistent.html">Bitstring_persistent</a>]</td>
+<td></td></tr>
+<tr><td><a href="Bitstring.html#VALsubbitstring">subbitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">subbitstring bits off len</code> returns a sub-bitstring
+    of the bitstring, starting at offset <code class="code">off</code> bits and
+    with length <code class="code">len</code> bits.
+</div>
+</td></tr>
+<tr><td align="left"><br>T</td></tr>
+<tr><td><a href="Bitstring.html#VALtakebits">takebits</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+Take the first n bits of the bitstring and return a new
+    bitstring which is exactly n bits long.
+</div>
+</td></tr>
+<tr><td align="left"><br>Z</td></tr>
+<tr><td><a href="Bitstring.html#VALzeroes_bitstring">zeroes_bitstring</a> [<a href="Bitstring.html">Bitstring</a>]</td>
+<td><div class="info">
+<code class="code">zeroes_bitstring</code> creates an <code class="code">n</code> bit bitstring of all 0's.
+</div>
+</td></tr>
+</table>
+</body>
+</html>

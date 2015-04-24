@@ -1,0 +1,756 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Bitstring.html">
+<link rel="next" href="Bitstring_types.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Bitstring" rel="Chapter" href="Bitstring.html">
+<link title="Bitstring_persistent" rel="Chapter" href="Bitstring_persistent.html">
+<link title="Bitstring_types" rel="Chapter" href="Bitstring_types.html"><link title="Introduction" rel="Section" href="#2_Introduction">
+<link title="Named patterns" rel="Section" href="#2_Namedpatterns">
+<link title="Persistent patterns in files" rel="Section" href="#2_Persistentpatternsinfiles">
+<link title="Creating your own persistent patterns" rel="Section" href="#2_Creatingyourownpersistentpatterns">
+<link title="Reference" rel="Section" href="#reference">
+<link title="Important notes" rel="Subsection" href="#3_Importantnotes">
+<link title="Extension" rel="Subsection" href="#3_Extension">
+<link title="Directory search order" rel="Subsection" href="#3_Directorysearchorder">
+<link title="bitstring-objinfo" rel="Subsection" href="#3_bitstringobjinfo">
+<link title="Constructors" rel="Subsection" href="#3_Constructors">
+<link title="Types" rel="Subsection" href="#3_Types">
+<link title="Printers" rel="Subsection" href="#3_Printers">
+<link title="Persistence" rel="Subsection" href="#3_Persistence">
+<link title="Create pattern fields" rel="Subsection" href="#3_Createpatternfields">
+<link title="Create constructor fields" rel="Subsection" href="#3_Createconstructorfields">
+<link title="Accessors" rel="Subsection" href="#3_Accessors">
+<title>Bitstring_persistent</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Bitstring.html" title="Bitstring">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Bitstring_types.html" title="Bitstring_types">Next</a>
+</div>
+<h1>Module <a href="type_Bitstring_persistent.html">Bitstring_persistent</a></h1>
+
+<pre><span class="keyword">module</span> Bitstring_persistent: <code class="code"><span class="keyword">sig</span></code> <a href="Bitstring_persistent.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Bitstring persistent patterns.<br>
+</div>
+<hr width="100%">
+<br>
+<b>Warning:</b> This documentation is for ADVANCED USERS ONLY.
+   If you are not an advanced user, you are probably looking
+   for <a href="Bitstring.html">the Bitstring documentation</a>.
+<p>
+
+   <a href="#reference">Jump straight to the reference section for
+   documentation on types and functions</a>.
+<p>
+
+   <h2 id="2_Introduction">Introduction</h2>
+<p>
+
+   Bitstring allows you to name sets of fields and reuse them
+   elsewhere.  For example if you frequently need to parse
+   Pascal-style strings in the form length byte + string, then you
+   could name the <code class="code">{ strlen : 8 : int; str : strlen*8 : string }</code>
+   pattern and reuse it everywhere by name.
+<p>
+
+   These are called <b>persistent patterns</b>.
+<p>
+
+   The basic usage is:
+<p>
+
+<pre class="verbatim">(* Create a persistent pattern called 'pascal_string' which
+ * matches Pascal-style strings (length byte + string).
+ *)
+let bitmatch pascal_string =
+  { strlen : 8 : int;
+    str : strlen*8 : string }
+
+let is_pascal_string bits =
+  bitmatch bits with
+  | { :pascal_string } -&gt;
+    printf "matches a Pascal string %s, len %d bytes\n"
+      str strlen</pre>
+<p>
+
+   or:
+<p>
+
+<pre class="verbatim">(* Load a persistent pattern from a file. *)
+open bitmatch "pascal.bmpp"
+
+let is_pascal_string bits =
+  bitmatch bits with
+  | { :pascal_string } -&gt;
+    printf "matches a Pascal string %s, len %d bytes\n"
+      str strlen</pre>
+<p>
+
+   <h3 id="3_Importantnotes">Important notes</h3>
+<p>
+
+   There are some important things you should know about
+   persistent patterns before you decide to use them:
+<p>
+
+   'Persistent' refers to the fact that they can be saved into binary
+   files.  However these binary files use OCaml <code class="code"><span class="constructor">Marshal</span></code> module and
+   depend (sometimes) on the version of OCaml used to generate them
+   and (sometimes) the version of bitstring used.  So your build system
+   should rebuild these files from source when your code is rebuilt.
+<p>
+
+   Persistent patterns are syntactic.  They work in the same way
+   as cutting and pasting (or <code class="code"><span class="keywordsign">#</span><span class="keyword">include</span></code>-ing) code.  For example
+   if a persistent pattern binds a field named <code class="code">len</code>, then any
+   uses of <code class="code">len</code> following in the surrounding pattern could
+   be affected.
+<p>
+
+   Programs which generate and manipulate persistent patterns have to
+   link to camlp4.  Since camlp4 in OCaml &gt;= 3.10 is rather large, we
+   have placed this code into this separate submodule, so that
+   programs which just use bitstring don't need to pull in the whole of
+   camlp4.  This restriction does not apply to code which only uses
+   persistent patterns but does not generate them.  If the distinction
+   isn't clear, use <code class="code">ocamlobjinfo</code> to look at the dependencies of your
+   <code class="code">*.cmo</code> files.
+<p>
+
+   Persistent patterns can be generated in several ways, but they
+   can only be <i>used</i> by the <code class="code">pa_bitstring</code> syntax extension.
+   This means they are purely compile-time constructs.  You
+   cannot use them to make arbitrary patterns and run those
+   patterns (not unless your program runs <code class="code">ocamlc</code> to make a <code class="code">*.cmo</code>
+   file then dynamically links to the <code class="code">*.cmo</code> file).
+<p>
+
+   <h2 id="2_Namedpatterns">Named patterns</h2>
+<p>
+
+   A named pattern is a way to name a pattern and use it later
+   in the same source file.  To name a pattern, use:
+<p>
+
+   <code class="code"><span class="keyword">let</span> bitmatch name = { fields ... } ;;</code>
+<p>
+
+   and you can then use the name later on inside another pattern,
+   by prefixing the name with a colon.
+   For example:
+<p>
+
+   <code class="code">bitmatch bits <span class="keyword">with</span> { :name } <span class="keywordsign">-&gt;</span> ...</code>
+<p>
+
+   You can nest named patterns within named patterns to any depth.
+<p>
+
+   Currently the use of named patterns is somewhat limited.
+   The restrictions are:
+<p>
+
+   Named patterns can only be used within the same source file, and
+   the names occupy a completely separate namespace from anything
+   else in the source file.
+<p>
+
+   The <code class="code"><span class="keyword">let</span> bitmatch</code> syntax only works at the top level.  We may
+   add a <code class="code"><span class="keyword">let</span> bitmatch ... <span class="keyword">in</span></code> for inner levels later.
+<p>
+
+   Because you cannot rename the bound identifiers in named
+   patterns, you can effectively only use them once in a
+   pattern.  For example, <code class="code">{ :name; :name }</code> is legal, but
+   any bindings in the first name would be overridden by
+   the second name.
+<p>
+
+   There are no "named constructors" yet, but the machinery
+   is in place to do this, and we may add them later.
+<p>
+
+   <h2 id="2_Persistentpatternsinfiles">Persistent patterns in files</h2>
+<p>
+
+   More useful than just naming patterns, you can load
+   persistent patterns from external files.  The patterns
+   in these external files can come from a variety of sources:
+   for example, in the <code class="code">cil-tools</code> subdirectory are some
+   <a href="http://cil.sf.net/">Cil-based</a> tools for importing C
+   structures from header files.  You can also generate
+   your own files or write your own tools, as described below.
+<p>
+
+   To use the persistent pattern(s) from a file do:
+<p>
+
+   <code class="code"><span class="keyword">open</span> bitmatch <span class="string">"filename.bmpp"</span> ;;</code>
+<p>
+
+   A list of zero or more <a href="Bitstring_persistent.html#TYPEnamed"><code class="code"><span class="constructor">Bitstring_persistent</span>.named</code></a> patterns are read from the file
+   and each is bound to a name (as contained in the file),
+   and then the patterns can be used with the usual <code class="code">:name</code>
+   syntax described above.
+<p>
+
+   <h3 id="3_Extension">Extension</h3>
+<p>
+
+   The standard extension is <code class="code">.bmpp</code>.  This is just a convention
+   and you can use any extension you want.
+<p>
+
+   <h3 id="3_Directorysearchorder">Directory search order</h3>
+<p>
+
+   If the filename is an absolute or explicit path, then we try to
+   load it from that path and stop if it fails.  See the <code class="code"><span class="constructor">Filename</span></code>
+   module in the standard OCaml library for the definitions of
+   "absolute path" and "explicit path".  Otherwise we use the
+   following directory search order:
+<p>
+<ul>
+<li>Relative to the current directory</li>
+<li>Relative to the OCaml library directory</li>
+</ul>
+
+   <h3 id="3_bitstringobjinfo">bitstring-objinfo</h3>
+<p>
+
+   The <code class="code">bitstring-objinfo</code> command can be run on a file in order
+   to print out the patterns in the file.
+<p>
+
+   <h3 id="3_Constructors">Constructors</h3>
+<p>
+
+   We haven't implemented persistent constructors yet, although
+   the machinery is in place to make this happen.  Any constructors
+   found in the file are ignored.
+<p>
+
+   <h2 id="2_Creatingyourownpersistentpatterns">Creating your own persistent patterns</h2>
+<p>
+
+   If you want to write a tool to import bitstrings from an
+   exotic location or markup language, you will need
+   to use the functions found in the <a href="#reference">reference section</a>.
+<p>
+
+   I will describe using an example here of how you would
+   programmatically create a persistent pattern which
+   matches Pascal-style "length byte + data" strings.
+   Firstly note that there are two fields, so our pattern
+   will be a list of length 2 and type <a href="Bitstring_persistent.html#TYPEpattern"><code class="code"><span class="constructor">Bitstring_persistent</span>.pattern</code></a>.
+<p>
+
+   You will need to create a camlp4 location object (<code class="code"><span class="constructor">Loc</span>.t</code>)
+   describing the source file.  This source file is used
+   to generate useful error messages for the user, so
+   you may want to set it to be the name and location in
+   the file that your tool reads for input.  By convention,
+   locations are bound to name <code class="code">_loc</code>:
+<p>
+
+   <pre class="verbatim">   let _loc = Loc.move_line 42 (Loc.mk "input.xml")
+  </pre>
+<p>
+
+   Create a pattern field representing a length field which is 8 bits wide,
+   bound to the identifier <code class="code">len</code>:
+<p>
+
+   <pre class="verbatim">   let len_field = create_pattern_field _loc
+   let len_field = set_length_int len_field 8
+   let len_field = set_lident_patt len_field "len"
+  </pre>
+<p>
+
+   Create a pattern field representing a string of <code class="code">len*8</code> bits.
+   Note that the use of <code class="code">&lt;:expr&lt; &gt;&gt;</code> quotation requires
+   you to preprocess your source with <code class="code">camlp4of</code>
+   (see <a href="http://brion.inria.fr/gallium/index.php/Reflective_OCaml">this
+   page on Reflective OCaml</a>).
+<p>
+
+   <pre class="verbatim">   let str_field = create_pattern_field _loc
+   let str_field = set_length str_field &lt;:expr&lt; len*8 &gt;&gt;
+   let str_field = set_lident_patt str_field "str"
+   let str_field = set_type_string str_field
+  </pre>
+<p>
+
+   Join the two fields together and name it:
+<p>
+
+   <pre class="verbatim">   let pattern = [len_field; str_field]
+   let named_pattern = "pascal_string", Pattern pattern
+  </pre>
+<p>
+
+   Save it to a file:
+<p>
+
+   <pre class="verbatim">   let chan = open_out "output.bmpp" in
+   named_to_channel chan named_pattern;
+   close_out chan
+  </pre>
+<p>
+
+   You can now use this pattern in another program like this:
+<p>
+
+   <pre class="verbatim">   open bitmatch "output.bmpp" ;;
+   let parse_pascal_string bits =
+   bitmatch bits with
+   | { :pascal_string } -&gt; str, len
+   | { _ } -&gt; invalid_arg "not a Pascal string"
+  </pre>
+<p>
+
+   You can write more than one named pattern to the output file, and
+   they will all be loaded at the same time by <code class="code"><span class="keyword">open</span> bitmatch <span class="string">".."</span></code>
+   (obviously you should give each pattern a different name).  To do
+   this, just call <a href="Bitstring_persistent.html#VALnamed_to_channel"><code class="code"><span class="constructor">Bitstring_persistent</span>.named_to_channel</code></a> as many times as needed.
+<p>
+
+   <h2 id="reference">Reference</h2>
+<p>
+
+   <h3 id="3_Types">Types</h3><br>
+
+<pre><span id="TYPEpatt"><span class="keyword">type</span> <code class="type"></code>patt</span> = <code class="type">Parsetree.pattern</code> </pre>
+
+
+<pre><span id="TYPEexpr"><span class="keyword">type</span> <code class="type"></code>expr</span> = <code class="type">Parsetree.expression</code> </pre>
+
+
+<pre><span id="TYPEloc_t"><span class="keyword">type</span> <code class="type"></code>loc_t</span> = <code class="type">Location.t</code> </pre>
+<div class="info ">
+Just short names for the ast types.<br>
+</div>
+
+
+<pre><span id="TYPEfield"><span class="keyword">type</span> <code class="type">'a</code> field</span> </pre>
+<div class="info ">
+A field in a persistent pattern or persistent constructor.<br>
+</div>
+
+
+<pre><span id="TYPEpattern"><span class="keyword">type</span> <code class="type"></code>pattern</span> = <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> list</code> </pre>
+<div class="info ">
+A persistent pattern (used in <code class="code">bitmatch</code> operator), is just a
+    list of pattern fields.<br>
+</div>
+
+
+<pre><span id="TYPEconstructor"><span class="keyword">type</span> <code class="type"></code>constructor</span> = <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> list</code> </pre>
+<div class="info ">
+A persistent constructor (used in <code class="code"><span class="constructor">BITSTRING</span></code> operator), is just a
+    list of constructor fields.<br>
+</div>
+
+
+<pre><span id="TYPEnamed"><span class="keyword">type</span> <code class="type"></code>named</span> = <code class="type">string * alt</code> </pre>
+
+
+<pre><code><span id="TYPEalt"><span class="keyword">type</span> <code class="type"></code>alt</span> = </code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTalt.Pattern"><span class="constructor">Pattern</span></span> <span class="keyword">of</span> <code class="type"><a href="Bitstring_persistent.html#TYPEpattern">pattern</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+Pattern<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTalt.Constructor"><span class="constructor">Constructor</span></span> <span class="keyword">of</span> <code class="type"><a href="Bitstring_persistent.html#TYPEconstructor">constructor</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+Constructor<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+<div class="info ">
+A named pattern or constructor.
+<p>
+
+    The name is used when binding a pattern from a file, but
+    is otherwise ignored.<br>
+</div>
+
+<br>
+<h3 id="3_Printers">Printers</h3><br>
+
+<pre><span id="VALstring_of_pattern"><span class="keyword">val</span> string_of_pattern</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpattern">pattern</a> -> string</code></pre>
+<pre><span id="VALstring_of_constructor"><span class="keyword">val</span> string_of_constructor</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEconstructor">constructor</a> -> string</code></pre>
+<pre><span id="VALstring_of_pattern_field"><span class="keyword">val</span> string_of_pattern_field</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -> string</code></pre>
+<pre><span id="VALstring_of_constructor_field"><span class="keyword">val</span> string_of_constructor_field</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -> string</code></pre><div class="info ">
+Convert patterns, constructors or individual fields
+    into printable strings for debugging purposes.
+<p>
+
+    The strings look similar to the syntax used by bitmatch, but
+    some things cannot be printed fully, eg. length expressions.<br>
+</div>
+<br>
+<h3 id="3_Persistence">Persistence</h3><br>
+
+<pre><span id="VALnamed_to_channel"><span class="keyword">val</span> named_to_channel</span> : <code class="type">Pervasives.out_channel -> <a href="Bitstring_persistent.html#TYPEnamed">named</a> -> unit</code></pre><div class="info ">
+Save a pattern/constructor to an output channel.<br>
+</div>
+
+<pre><span id="VALnamed_to_string"><span class="keyword">val</span> named_to_string</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEnamed">named</a> -> string</code></pre><div class="info ">
+Serialize a pattern/constructor to a string.<br>
+</div>
+
+<pre><span id="VALnamed_to_buffer"><span class="keyword">val</span> named_to_buffer</span> : <code class="type">string -> int -> int -> <a href="Bitstring_persistent.html#TYPEnamed">named</a> -> int</code></pre><div class="info ">
+Serialize a pattern/constructor to part of a string, return the length.<br>
+</div>
+
+<pre><span id="VALnamed_from_channel"><span class="keyword">val</span> named_from_channel</span> : <code class="type">Pervasives.in_channel -> <a href="Bitstring_persistent.html#TYPEnamed">named</a></code></pre><div class="info ">
+Load a pattern/constructor from an output channel.
+<p>
+
+    Note: This is not type safe.  The pattern/constructor must
+    have been written out under the same version of OCaml and
+    the same version of bitstring.<br>
+</div>
+
+<pre><span id="VALnamed_from_string"><span class="keyword">val</span> named_from_string</span> : <code class="type">string -> int -> <a href="Bitstring_persistent.html#TYPEnamed">named</a></code></pre><div class="info ">
+Load a pattern/constructor from a string at offset within the string.
+<p>
+
+    Note: This is not type safe.  The pattern/constructor must
+    have been written out under the same version of OCaml and
+    the same version of bitstring.<br>
+</div>
+<br>
+<h3 id="3_Createpatternfields">Create pattern fields</h3>
+<p>
+
+    These fields are used in pattern matches (<code class="code">bitmatch</code>).<br>
+
+<pre><span id="VALcreate_pattern_field"><span class="keyword">val</span> create_pattern_field</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEloc_t">loc_t</a> -><br>       <a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Create a pattern field.
+<p>
+
+    The pattern is unbound, the type is set to <code class="code">int</code>, bit length to <code class="code">32</code>,
+    endianness to <code class="code"><span class="constructor">BigEndian</span></code>, signedness to unsigned (<code class="code"><span class="keyword">false</span></code>),
+    source code location to the <code class="code">_loc</code> parameter, and no offset expression.
+<p>
+
+    To create a complete field you need to call the <code class="code">set_*</code>
+    functions.  For example, to create <code class="code">{ len : 8 : int }</code>
+    you would do:
+<p>
+
+<pre class="verbatim">    let field = create_pattern_field _loc in
+    let field = set_lident_patt field "len" in
+    let field = set_length_int field 8 in</pre><br>
+</div>
+
+<pre><span id="VALset_lident_patt"><span class="keyword">val</span> set_lident_patt</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       string -> <a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the pattern to the pattern binding an identifier
+    given in the string.
+<p>
+
+    The effect is that the field <code class="code">{ len : 8 : int }</code> could
+    be created by calling <code class="code">set_lident_patt field <span class="string">"len"</span></code>.<br>
+</div>
+
+<pre><span id="VALset_int_patt"><span class="keyword">val</span> set_int_patt</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       int -> <a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the pattern field to the pattern which matches an integer.
+<p>
+
+    The effect is that the field <code class="code">{ 2 : 8 : int }</code> could
+    be created by calling <code class="code">set_int_patt field 2</code>.<br>
+</div>
+
+<pre><span id="VALset_string_patt"><span class="keyword">val</span> set_string_patt</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       string -> <a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the pattern field to the pattern which matches a string.
+<p>
+
+    The effect is that the field <code class="code">{ <span class="string">"MAGIC"</span> : 8*5 : string }</code> could
+    be created by calling <code class="code">set_int_patt field <span class="string">"MAGIC"</span></code>.<br>
+</div>
+
+<pre><span id="VALset_unbound_patt"><span class="keyword">val</span> set_unbound_patt</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the pattern field to the unbound pattern (usually written <code class="code">_</code>).
+<p>
+
+    The effect is that the field <code class="code">{ _ : 8 : int }</code> could
+    be created by calling <code class="code">set_unbound_patt field</code>.<br>
+</div>
+
+<pre><span id="VALset_patt"><span class="keyword">val</span> set_patt</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEpatt">patt</a> -><br>       <a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the pattern field to an arbitrary OCaml pattern match.<br>
+</div>
+
+<pre><span id="VALset_length_int"><span class="keyword">val</span> set_length_int</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> int -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the length in bits of a field to a constant integer.
+<p>
+
+    The effect is that the field <code class="code">{ len : 8 : string }</code> could
+    be created by calling <code class="code">set_length field 8</code>.<br>
+</div>
+
+<pre><span id="VALset_length"><span class="keyword">val</span> set_length</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the length in bits of a field to an OCaml expression.
+<p>
+
+    The effect is that the field <code class="code">{ len : 2*i : string }</code> could
+    be created by calling <code class="code">set_length field &lt;:expr&lt; 2*i &gt;&gt;</code>.<br>
+</div>
+
+<pre><span id="VALset_endian"><span class="keyword">val</span> set_endian</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring.html#TYPEendian">Bitstring.endian</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the endianness of a field to the constant endianness.
+<p>
+
+    The effect is that the field <code class="code">{ _ : 16 : bigendian }</code> could
+    be created by calling <code class="code">set_endian field <span class="constructor">Bitstring</span>.<span class="constructor">BigEndian</span></code>.<br>
+</div>
+
+<pre><span id="VALset_endian_expr"><span class="keyword">val</span> set_endian_expr</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the endianness of a field to an endianness expression.
+<p>
+
+    The effect is that the field <code class="code">{ _ : 16 : endian(e) }</code> could
+    be created by calling <code class="code">set_endian_expr field e</code>.<br>
+</div>
+
+<pre><span id="VALset_signed"><span class="keyword">val</span> set_signed</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> bool -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the signedness of a field to a constant signedness.
+<p>
+
+    The effect is that the field <code class="code">{ _ : 16 : signed }</code> could
+    be created by calling <code class="code">set_signed field <span class="keyword">true</span></code>.<br>
+</div>
+
+<pre><span id="VALset_type_int"><span class="keyword">val</span> set_type_int</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the type of a field to <code class="code">int</code>.
+<p>
+
+    The effect is that the field <code class="code">{ _ : 16 : int }</code> could
+    be created by calling <code class="code">set_type_int field</code>.<br>
+</div>
+
+<pre><span id="VALset_type_string"><span class="keyword">val</span> set_type_string</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the type of a field to <code class="code">string</code>.
+<p>
+
+    The effect is that the field <code class="code">{ str : 16 : string }</code> could
+    be created by calling <code class="code">set_type_string field</code>.<br>
+</div>
+
+<pre><span id="VALset_type_bitstring"><span class="keyword">val</span> set_type_bitstring</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the type of a field to <code class="code">bitstring</code>.
+<p>
+
+    The effect is that the field <code class="code">{ _ : 768 : bitstring }</code> could
+    be created by calling <code class="code">set_type_bitstring field</code>.<br>
+</div>
+
+<pre><span id="VALset_location"><span class="keyword">val</span> set_location</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEloc_t">loc_t</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the source code location of a field.  This is used when
+    pa_bitstring displays error messages.<br>
+</div>
+
+<pre><span id="VALset_offset_int"><span class="keyword">val</span> set_offset_int</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> int -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Set the offset expression for a field to the given number.
+<p>
+
+    The effect is that the field <code class="code">{ _ : 8 : offset(160) }</code> could
+    be created by calling <code class="code">set_offset_int field 160</code>.<br>
+</div>
+
+<pre><span id="VALset_offset"><span class="keyword">val</span> set_offset</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Set the offset expression for a field to the given expression.
+<p>
+
+    The effect is that the field <code class="code">{ _ : 8 : offset(160) }</code> could
+    be created by calling <code class="code">set_offset_int field &lt;:expr&lt; 160 &gt;&gt;</code>.<br>
+</div>
+
+<pre><span id="VALset_no_offset"><span class="keyword">val</span> set_no_offset</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Remove the offset expression from a field.  The field will
+    follow the previous field, or if it is the first field will
+    be at offset zero.<br>
+</div>
+
+<pre><span id="VALset_check"><span class="keyword">val</span> set_check</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Set the check expression for a field to the given expression.<br>
+</div>
+
+<pre><span id="VALset_no_check"><span class="keyword">val</span> set_no_check</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Remove the check expression from a field.<br>
+</div>
+
+<pre><span id="VALset_bind"><span class="keyword">val</span> set_bind</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Set the bind-expression for a field to the given expression.<br>
+</div>
+
+<pre><span id="VALset_no_bind"><span class="keyword">val</span> set_no_bind</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Remove the bind-expression from a field.<br>
+</div>
+
+<pre><span id="VALset_save_offset_to"><span class="keyword">val</span> set_save_offset_to</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEpatt">patt</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Set the save_offset_to pattern for a field to the given pattern.<br>
+</div>
+
+<pre><span id="VALset_save_offset_to_lident"><span class="keyword">val</span> set_save_offset_to_lident</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> string -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Set the save_offset_to pattern for a field to identifier.<br>
+</div>
+
+<pre><span id="VALset_no_save_offset_to"><span class="keyword">val</span> set_no_save_offset_to</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> 'a <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Remove the save_offset_to from a field.<br>
+</div>
+<br>
+<h3 id="3_Createconstructorfields">Create constructor fields</h3>
+<p>
+
+    These fields are used in constructors (<code class="code"><span class="constructor">BITSTRING</span></code>).<br>
+
+<pre><span id="VALcreate_constructor_field"><span class="keyword">val</span> create_constructor_field</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEloc_t">loc_t</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Create a constructor field.
+<p>
+
+    The defaults are the same as for <a href="Bitstring_persistent.html#VALcreate_pattern_field"><code class="code"><span class="constructor">Bitstring_persistent</span>.create_pattern_field</code></a>
+    except that the expression is initialized to <code class="code">0</code>.<br>
+</div>
+
+<pre><span id="VALset_lident_expr"><span class="keyword">val</span> set_lident_expr</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       string -> <a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the expression in a constructor field to an expression
+    which uses the identifier.
+<p>
+
+    The effect is that the field <code class="code">{ len : 8 : int }</code> could
+    be created by calling <code class="code">set_lident_expr field <span class="string">"len"</span></code>.<br>
+</div>
+
+<pre><span id="VALset_int_expr"><span class="keyword">val</span> set_int_expr</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       int -> <a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the expression to the value of the integer.
+<p>
+
+    The effect is that the field <code class="code">{ 2 : 8 : int }</code> could
+    be created by calling <code class="code">set_int_expr field 2</code>.<br>
+</div>
+
+<pre><span id="VALset_string_expr"><span class="keyword">val</span> set_string_expr</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       string -> <a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the expression to the value of the string.
+<p>
+
+    The effect is that the field <code class="code">{ <span class="string">"MAGIC"</span> : 8*5 : string }</code> could
+    be created by calling <code class="code">set_int_expr field <span class="string">"MAGIC"</span></code>.<br>
+</div>
+
+<pre><span id="VALset_expr"><span class="keyword">val</span> set_expr</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a></code></pre><div class="info ">
+Sets the expression field to an arbitrary OCaml expression.<br>
+</div>
+<br>
+<h3 id="3_Accessors">Accessors</h3><br>
+
+<pre><span id="VALget_patt"><span class="keyword">val</span> get_patt</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEpatt">patt</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEpatt">patt</a></code></pre><div class="info ">
+Get the pattern from a pattern field.<br>
+</div>
+
+<pre><span id="VALget_expr"><span class="keyword">val</span> get_expr</span> : <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a> <a href="Bitstring_persistent.html#TYPEfield">field</a> -><br>       <a href="Bitstring_persistent.html#TYPEexpr">expr</a></code></pre><div class="info ">
+Get the expression from an expression field.<br>
+</div>
+
+<pre><span id="VALget_length"><span class="keyword">val</span> get_length</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEexpr">expr</a></code></pre><div class="info ">
+Get the length in bits from a field.  Note that what is returned
+    is an OCaml expression, since lengths can be non-constant.<br>
+</div>
+
+<pre><code><span id="TYPEendian_expr"><span class="keyword">type</span> <code class="type"></code>endian_expr</span> = </code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTendian_expr.ConstantEndian"><span class="constructor">ConstantEndian</span></span> <span class="keyword">of</span> <code class="type"><a href="Bitstring.html#TYPEendian">Bitstring.endian</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTendian_expr.EndianExpr"><span class="constructor">EndianExpr</span></span> <span class="keyword">of</span> <code class="type"><a href="Bitstring_persistent.html#TYPEexpr">expr</a></code></code></td>
+
+</tr></table>
+
+
+
+<pre><span id="VALget_endian"><span class="keyword">val</span> get_endian</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEendian_expr">endian_expr</a></code></pre><div class="info ">
+Get the endianness of a field.  This is an <a href="Bitstring_persistent.html#TYPEendian_expr"><code class="code"><span class="constructor">Bitstring_persistent</span>.endian_expr</code></a> which
+    could be a constant or an OCaml expression.<br>
+</div>
+
+<pre><span id="VALget_signed"><span class="keyword">val</span> get_signed</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> bool</code></pre><div class="info ">
+Get the signedness of a field.<br>
+</div>
+
+<pre><code><span id="TYPEfield_type"><span class="keyword">type</span> <code class="type"></code>field_type</span> = </code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTfield_type.Int"><span class="constructor">Int</span></span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTfield_type.String"><span class="constructor">String</span></span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTfield_type.Bitstring"><span class="constructor">Bitstring</span></span></code></td>
+
+</tr></table>
+
+
+
+<pre><span id="VALget_type"><span class="keyword">val</span> get_type</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEfield_type">field_type</a></code></pre><div class="info ">
+Get the type of a field, <code class="code"><span class="constructor">Int</span></code>, <code class="code"><span class="constructor">String</span></code> or <code class="code"><span class="constructor">Bitstring</span></code>.<br>
+</div>
+
+<pre><span id="VALget_location"><span class="keyword">val</span> get_location</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEloc_t">loc_t</a></code></pre><div class="info ">
+Get the source code location of a field.<br>
+</div>
+
+<pre><span id="VALget_offset"><span class="keyword">val</span> get_offset</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEexpr">expr</a> option</code></pre><div class="info ">
+Get the offset expression of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.<br>
+</div>
+
+<pre><span id="VALget_check"><span class="keyword">val</span> get_check</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEexpr">expr</a> option</code></pre><div class="info ">
+Get the check expression of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.<br>
+</div>
+
+<pre><span id="VALget_bind"><span class="keyword">val</span> get_bind</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEexpr">expr</a> option</code></pre><div class="info ">
+Get the bind expression of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.<br>
+</div>
+
+<pre><span id="VALget_save_offset_to"><span class="keyword">val</span> get_save_offset_to</span> : <code class="type">'a <a href="Bitstring_persistent.html#TYPEfield">field</a> -> <a href="Bitstring_persistent.html#TYPEpatt">patt</a> option</code></pre><div class="info ">
+Get the save_offset_to pattern of a field, or <code class="code"><span class="constructor">None</span></code> if there is none.<br>
+</div>
+</body></html>

@@ -1,0 +1,35 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="Up" href="Bitstring.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Bitstring" rel="Chapter" href="Bitstring.html">
+<link title="Bitstring_persistent" rel="Chapter" href="Bitstring_persistent.html">
+<link title="Bitstring_types" rel="Chapter" href="Bitstring_types.html"><title>Bitstring.Buffer</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="Bitstring.html" title="Bitstring">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Bitstring.Buffer.html">Bitstring.Buffer</a></h1>
+
+<pre><span class="keyword">module</span> Buffer: <code class="code"><span class="keyword">sig</span></code> <a href="Bitstring.Buffer.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Buffers are mainly used by the <code class="code"><span class="constructor">BITSTRING</span></code> constructor, but
+    may also be useful for end users.  They work much like the
+    standard library <code class="code"><span class="constructor">Buffer</span></code> module.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">unit -> <a href="Bitstring.Buffer.html#TYPEt">t</a></code></pre>
+<pre><span id="VALcontents"><span class="keyword">val</span> contents</span> : <code class="type"><a href="Bitstring.Buffer.html#TYPEt">t</a> -> <a href="Bitstring.html#TYPEbitstring">Bitstring.bitstring</a></code></pre>
+<pre><span id="VALadd_bits"><span class="keyword">val</span> add_bits</span> : <code class="type"><a href="Bitstring.Buffer.html#TYPEt">t</a> -> string -> int -> unit</code></pre>
+<pre><span id="VALadd_bit"><span class="keyword">val</span> add_bit</span> : <code class="type"><a href="Bitstring.Buffer.html#TYPEt">t</a> -> bool -> unit</code></pre>
+<pre><span id="VALadd_byte"><span class="keyword">val</span> add_byte</span> : <code class="type"><a href="Bitstring.Buffer.html#TYPEt">t</a> -> int -> unit</code></pre></body></html>
