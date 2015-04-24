@@ -6,3 +6,4 @@ true: package(ocplib-endian)
 <src>: include
 <{tests,examples}/*.{byte,native,ml}>: use_bitstring
 <tools/create_test_pattern.*>: package(ppx_tools.metaquot)
+<tests/test_51_open_pattern.ml>: use_test_bmpp
