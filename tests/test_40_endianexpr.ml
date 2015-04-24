@@ -8,21 +8,21 @@ open Bitstring
 let () =
   let rec loop = function
     | (e, expected) :: rest ->
-	let bits = BITSTRING {
-	  expected : 32 : endian (e);
-	  expected : 32 : endian (e);
-	  expected : 32 : endian (e)
-	} in
-	(bitmatch bits with
-	 | { actual : 32 : endian (e);
-	     actual : 32 : endian (e);
-	     actual : 32 : endian (e) } ->
-	     if actual <> expected then
-	       failwith (sprintf "actual %ld <> expected %ld" actual expected)
-	 | { _ } as bits ->
-	     hexdump_bitstring stderr bits; exit 1
-	);
-	loop rest
+        let bits = [%bitstring
+          expected [@l 32] [@endian e],
+          expected [@l 32] [@endian e],
+          expected [@l 32] [@endian e]
+        ] in
+        (match%bitstring bits with
+         | actual [@l 32] [@endian e],
+           actual [@l 32] [@endian e],
+           actual [@l 32] [@endian e] ->
+             if actual <> expected then
+               failwith (sprintf "actual %ld <> expected %ld" actual expected)
+         | _ as bits ->
+             hexdump_bitstring stderr bits; exit 1
+        );
+        loop rest
     | [] -> ()
   in
   loop [

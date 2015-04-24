@@ -5,7 +5,7 @@
 open Printf
 
 let nr_passes = 10000
-let max_size = 8			(* max field size in bits *)
+let max_size = 8                        (* max field size in bits *)
 
 (* let () = Bitstring.debug := true *)
 
@@ -56,34 +56,34 @@ let () =
     (* Construct the bitstring. *)
     let bits =
       try
-	(BITSTRING {
-	   n0 : n0sz;
-           n1 : n1sz;
-	   n2 : n2sz;
-	   n3 : n3sz
-	 })
+        [%bitstring
+          n0 [@l n0sz],
+          n1 [@l n1sz],
+          n2 [@l n2sz],
+          n3 [@l n3sz]
+        ]
       with
-	Bitstring.Construct_failure (msg, _, _, _) ->
-	  eprintf "FAILED: Construct_failure %s\n%!" msg;
-	  dump n0 n0sz n1 n1sz n2 n2sz n3 n3sz
-	    (Bitstring.empty_bitstring) 0L 0L 0L 0L;
-	  exit 2 in
+        Bitstring.Construct_failure (msg, _, _, _) ->
+          eprintf "FAILED: Construct_failure %s\n%!" msg;
+          dump n0 n0sz n1 n1sz n2 n2sz n3 n3sz
+            (Bitstring.empty_bitstring) 0L 0L 0L 0L;
+          exit 2 in
 
     let r0, r1, r2, r3 =
-      bitmatch bits with
-      | { r0 : n0sz; r1 : n1sz; r2 : n2sz; r3 : n3sz; rest : -1 : bitstring } ->
-	  let rest_len = Bitstring.bitstring_length rest in
+      match%bitstring bits with
+      | r0 [@l n0sz], r1 [@l n1sz], r2 [@l n2sz], r3 [@l n3sz], rest [@l -1] [@bitstring] ->
+          let rest_len = Bitstring.bitstring_length rest in
           if rest_len <> 0 then (
-	    eprintf "FAILED: rest is not zero length (length = %d)\n%!"
-	      rest_len;
-	    dump n0 n0sz n1 n1sz n2 n2sz n3 n3sz bits 0L 0L 0L 0L;
-	    exit 2
-	  );
+            eprintf "FAILED: rest is not zero length (length = %d)\n%!"
+              rest_len;
+            dump n0 n0sz n1 n1sz n2 n2sz n3 n3sz bits 0L 0L 0L 0L;
+            exit 2
+          );
           r0, r1, r2, r3
-      | { _ } ->
-	  eprintf "FAILED: bitmatch operator did not match\n%!";
-	  dump n0 n0sz n1 n1sz n2 n2sz n3 n3sz bits 0L 0L 0L 0L;
-	  exit 2 in
+      | _ ->
+          eprintf "FAILED: bitmatch operator did not match\n%!";
+          dump n0 n0sz n1 n1sz n2 n2sz n3 n3sz bits 0L 0L 0L 0L;
+          exit 2 in
 
     (*dump n0 n0sz n1 n1sz n2 n2sz n3 n3sz bits r0 r1 r2 r3;*)
 

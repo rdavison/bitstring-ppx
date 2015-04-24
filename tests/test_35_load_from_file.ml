@@ -8,18 +8,18 @@ open Bitstring
 let () =
   let bits1 =
     let b1 = make_bitstring 800 '\x5a' in
-    let b2 = make_bitstring 400 '\x88' in (
-      BITSTRING {
-	b1 : 800 : bitstring;
-	b2 : 400 : bitstring
-      }
-    ) in
-  let bits2 = (
+    let b2 = make_bitstring 400 '\x88' in
+    [%bitstring
+      b1 [@l 800] [@bitstring],
+      b2 [@l 400] [@bitstring]
+    ]
+  in
+  let bits2 =
     let b = make_bitstring 800 '\xaa' in
-    BITSTRING {
-      b : 800 : bitstring
-    }
-  ) in
+    [%bitstring
+      b [@l 800] [@bitstring]
+    ]
+  in
   let bits = concat [bits1; bits2] in
   let filename, chan =
     Filename.open_temp_file ~mode:[Open_binary] "bitstring_test" ".tmp" in

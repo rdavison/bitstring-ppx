@@ -12,10 +12,10 @@ let () =
   assert (bitstring_length bs_256 = 256);
 
   let bs2 =
-    BITSTRING {
-      false : 1;
-      (subbitstring bs_256 0 66) : 66 : bitstring
-    } in
+    [%bitstring
+      false [@l 1],
+      (subbitstring bs_256 0 66) [@l 66] [@bitstring]
+    ] in
   let len = bitstring_length bs2 in
   if len <> 67 then (
     eprintf "invalid length of bs2: len = %d, expected 67\n" len;
@@ -24,11 +24,11 @@ let () =
   );
 
   let bs3 =
-    BITSTRING {
-      false : 1;
-      (subbitstring bs_256 0 66) : 66 : bitstring;
-      (subbitstring bs_256 66 67) : 67 : bitstring
-    } in
+    [%bitstring
+      false [@l 1],
+      (subbitstring bs_256 0 66) [@l 66] [@bitstring],
+      (subbitstring bs_256 66 67) [@l 67] [@bitstring]
+    ] in
   let len = bitstring_length bs3 in
   if len <> 134 then (
     eprintf "invalid length of bs3: len = %d, expected 134\n" len;
@@ -37,9 +37,9 @@ let () =
   );
 
   let bs4 =
-    BITSTRING {
-      (subbitstring bs_256 66 67) : 67 : bitstring
-    } in
+    [%bitstring
+      (subbitstring bs_256 66 67) [@l 67] [@bitstring]
+    ] in
   let len = bitstring_length bs4 in
   if len <> 67 then (
     eprintf "invalid length of bs4: len = %d, expected 67\n" len;

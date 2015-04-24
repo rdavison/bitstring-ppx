@@ -23,12 +23,12 @@ let () =
 
     (* Now read the bitstring in groups of 1, 2, 3 .. etc. bits.
      * In each case check the result against what we generated ('expected').
-     *)
+    *)
     let actual =
       let rec loop bits =
-	bitmatch bits with
-	| { b0 : 1; rest : -1 : bitstring } -> b0 :: loop rest
-	| { _ } -> []
+	match%bitstring bits with
+	| b0 [@l 1], rest [@l -1] [@bitstring] -> b0 :: loop rest
+	| _ -> []
       in
       loop bits in
     if actual <> expected then
@@ -36,10 +36,10 @@ let () =
 
     let actual =
       let rec loop bits =
-	bitmatch bits with
-	| { b0 : 1; b1 : 1; rest : -1 : bitstring } -> b0 :: b1 :: loop rest
-	| { b0 : 1; rest : -1 : bitstring } -> b0 :: loop rest
-	| { _ } -> []
+	match%bitstring bits with
+	| b0 [@l 1], b1 [@l 1], rest [@l -1] [@bitstring] -> b0 :: b1 :: loop rest
+	| b0 [@l 1], rest [@l -1] [@bitstring] -> b0 :: loop rest
+	| _ -> []
       in
       loop bits in
     if actual <> expected then
@@ -47,11 +47,11 @@ let () =
 
     let actual =
       let rec loop bits =
-	bitmatch bits with
-	| { b0 : 1; b1 : 1; b2 : 1;
-	    rest : -1 : bitstring } -> b0 :: b1 :: b2 :: loop rest
-	| { b0 : 1; rest : -1 : bitstring } -> b0 :: loop rest
-	| { _ } -> []
+	match%bitstring bits with
+	| b0 [@l 1], b1 [@l 1], b2 [@l 1],
+	  rest [@l -1] [@bitstring] -> b0 :: b1 :: b2 :: loop rest
+	| b0 [@l 1], rest [@l -1] [@bitstring] -> b0 :: loop rest
+	| _ -> []
       in
       loop bits in
     if actual <> expected then
@@ -59,11 +59,11 @@ let () =
 
     let actual =
       let rec loop bits =
-	bitmatch bits with
-	| { b0 : 1; b1 : 1; b2 : 1; b3 : 1;
-	    rest : -1 : bitstring } -> b0 :: b1 :: b2 :: b3 :: loop rest
-	| { b0 : 1; rest : -1 : bitstring } -> b0 :: loop rest
-	| { _ } -> []
+	match%bitstring bits with
+	| b0 [@l 1], b1 [@l 1], b2 [@l 1], b3 [@l 1],
+	  rest [@l -1] [@bitstring] -> b0 :: b1 :: b2 :: b3 :: loop rest
+	| b0 [@l 1], rest [@l -1] [@bitstring] -> b0 :: loop rest
+	| _ -> []
       in
       loop bits in
     if actual <> expected then
@@ -71,14 +71,14 @@ let () =
 
     let actual =
       let rec loop bits =
-	bitmatch bits with
-	| { b0 : 1; b1 : 1; b2 : 1; b3 : 1;
-	    b4 : 1; b5 : 1; b6 : 1; b7 : 1;
-	    b8 : 1;
-	    rest : -1 : bitstring } ->
+	match%bitstring bits with
+	| b0 [@l 1], b1 [@l 1], b2 [@l 1], b3 [@l 1],
+	  b4 [@l 1], b5 [@l 1], b6 [@l 1], b7 [@l 1],
+	  b8 [@l 1],
+	  rest [@l -1] [@bitstring] ->
 	    b0 :: b1 :: b2 :: b3 :: b4 :: b5 :: b6 :: b7 :: b8 :: loop rest
-	| { b0 : 1; rest : -1 : bitstring } -> b0 :: loop rest
-	| { _ } -> []
+	| b0 [@l 1], rest [@l -1] [@bitstring] -> b0 :: loop rest
+	| _ -> []
       in
       loop bits in
     if actual <> expected then

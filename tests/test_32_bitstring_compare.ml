@@ -16,8 +16,8 @@ let () =
       and bits2 = Bitstring.ones_bitstring j in
       let r = Bitstring.compare bits1 bits2 in
       if sgn r <> sgn (compare i j) then (
-	eprintf "ones compare failed %d %d %d\n" i j r;
-	exit 1
+        eprintf "ones compare failed %d %d %d\n" i j r;
+        exit 1
       )
     done
  done;

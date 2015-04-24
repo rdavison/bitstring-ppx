@@ -11,7 +11,7 @@ let (//) = Filename.concat
 let testdata = "tests" // "80_testdata" ;;
 Sys.chdir testdata ;;
 
-let diff = Bitstring_config.diff
+let diff = "diff"
 
 let () =
   let files = Sys.readdir "." in
@@ -19,7 +19,7 @@ let () =
   let files = List.filter (
     fun filename ->
       String.length filename > 3 &&
-	filename.[0] = 'r' && filename.[1] = 'n' && filename.[2] = 'd'
+        filename.[0] = 'r' && filename.[1] = 'n' && filename.[2] = 'd'
   ) files in
   let files = List.map (
     fun filename ->
@@ -48,11 +48,11 @@ let () =
       let actual_filename = sprintf "hex%d.actual" n in
       let expected_filename = sprintf "hex%d.expected" n in
       let cmd =
-	sprintf "%s -u %s %s"
-	  (Filename.quote diff)
-	  (Filename.quote expected_filename)
-	  (Filename.quote actual_filename) in
+        sprintf "%s -u %s %s"
+          (Filename.quote diff)
+          (Filename.quote expected_filename)
+          (Filename.quote actual_filename) in
       if Sys.command cmd <> 0 then (
-	exit 1
+        exit 1
       )
   ) files

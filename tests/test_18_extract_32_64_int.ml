@@ -8,18 +8,18 @@ open Printf
 open Bitstring
 
 let bitstring_of_int32 i =
-  BITSTRING { i : 32 }
+  [%bitstring i [@l 32]]
 
 let bitstring_of_int64 i =
-  BITSTRING { i : 64 }
+  [%bitstring i [@l 64]]
 
 let int32_of_bitstring bits =
-  bitmatch bits with
-  | { i : 32 } -> i
+  match%bitstring bits with
+  | i [@l 32] -> i
 
 let int64_of_bitstring bits =
-  bitmatch bits with
-  | { i : 64 } -> i
+  match%bitstring bits with
+  | i [@l 64] -> i
 
 let () =
   let b1 = bitstring_of_int32 1_l in

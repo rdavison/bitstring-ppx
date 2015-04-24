@@ -5,13 +5,13 @@
 open Printf
 open Bitstring
 
-open bitmatch "tests/test.bmpp"
+[%%bitstring "tests/test.bmpp"]
 
 let () =
   let bits = bitstring_of_string "\022Mary had a little lamb" in
-  bitmatch bits with
-  | { :pascal_string } ->
+  match%bitstring bits with
+  | [%pascal_string] ->
       () (*printf "it's a Pascal string, len = %d, string = %S\n" len str*)
-  | { _ } ->
+  | _ ->
       eprintf "not matching error\n";
       exit 1

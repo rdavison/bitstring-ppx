@@ -1094,10 +1094,12 @@ let qualifier = function
  * return multiple fields, in the case where the 'field' is a named
  * persitent pattern.
  *)
-let patt_field = function
+let rec patt_fields = function
   | {ppat_desc = Ppat_any} -> []
   | {ppat_desc = Ppat_extension ({txt = name}, PStr []); ppat_loc = loc} ->
       expand_named_pattern loc name   (* Named -> list of fields. *)
+  | {ppat_desc = Ppat_tuple pats} ->
+      List.concat (List.map patt_fields pats)
   | fpatt ->
       let loc = fpatt.ppat_loc in
       let len, qs =
@@ -1115,17 +1117,11 @@ let patt_field = function
 
 (* Case inside bitmatch operator. *)
 let patt_case case =
-  let aux = function
-    | {ppat_desc = Ppat_tuple pats} ->
-        List.concat (List.map patt_field pats)
-    | fpatt ->
-        patt_field fpatt
-  in
   match case.pc_lhs with
   | {ppat_desc = Ppat_alias (p, {txt = name})} ->
-      (aux p, Some name, case.pc_guard, case.pc_rhs)
+      (patt_fields p, Some name, case.pc_guard, case.pc_rhs)
   | p ->
-      (aux p, None, case.pc_guard, case.pc_rhs)
+      (patt_fields p, None, case.pc_guard, case.pc_rhs)
 
 (* Field used in the BITSTRING constructor (an expression). *)
 let constr_field fexpr =
@@ -1163,7 +1159,16 @@ let structure_item mapper = function
                  {pexp_desc =
                     Pexp_extension ({txt = "bitstring"}, PPat (fpatt, None))}}]);
      pstr_loc = loc} ->
-      add_named_pattern loc name (patt_field fpatt);
+      add_named_pattern loc name (patt_fields fpatt);
+      Str.mk (Pstr_eval (Ast.unit (), []))
+  | {pstr_desc =
+       Pstr_extension
+         (({txt = "bitstring"}, PStr
+             [{pstr_desc =
+                 Pstr_eval
+                   ({pexp_desc = Pexp_constant (Const_string (filename, None))}, _)}]), _);
+     pstr_loc = loc} ->
+      load_patterns_from_file loc filename;
       Str.mk (Pstr_eval (Ast.unit (), []))
   | other ->
       default_mapper.structure_item mapper other
