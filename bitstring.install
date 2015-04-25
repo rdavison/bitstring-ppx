@@ -1,0 +1,19 @@
+lib: [
+  "META"
+  "_build/src/bitstring.mli" {"bitstring.mli"}
+  "_build/src/bitstring.cmi" {"bitstring.cmi"}
+  "_build/src/bitstring.cma" {"bitstring.cma"}
+  "?_build/src/bitstring.cmxa" {"bitstring.cmxa"}
+  "_build/src/bitstring_persistent.mli" {"bitstring_persistent.mli"}
+  "_build/src/bitstring_persistent.cmi" {"bitstring_persistent.cmi"}
+  "_build/src/bitstring_persistent.cma" {"bitstring_persistent.cma"}
+  "?_build/src/bitstring_persistent.cmxa" {"bitstring_persistent.cmxa"}
+]
+libexec: [
+  "_build/src/ppx_bitstring.byte" {"ppx_bitstring.byte"}
+  "?_build/src/ppx_bitstring.native" {"ppx_bitstring.native"}
+]
+doc: [
+  "README.md" {"README.md"}
+  "CHANGES.md" {"CHANGES.md"}
+]

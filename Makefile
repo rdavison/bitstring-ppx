@@ -57,11 +57,13 @@ benchmarks: benchmarks/benchmarks.otarget
 
 # Install.
 
-install: uninstall
-	opam-installer --prefix=$(PREFIX) opam.install
+install: lib ppx
+	opam-installer --prefix=$(PREFIX) bitstring.install
 
 uninstall:
-	opam-installer --prefix=$(PREFIX) -u opam.install
+	opam-installer --prefix=$(PREFIX) -u bitstring.install
+
+reinstall: uninstall install
 
 clean:
 	$(OCAMLBUILD) -clean
