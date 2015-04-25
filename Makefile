@@ -20,6 +20,7 @@
 
 OCAMLBUILD = ocamlbuild -classic-display -use-ocamlfind
 PREFIX = $(shell opam config var prefix)
+TIME = gtime # replace by the time command in your system, should support -f
 
 all: lib ppx
 
@@ -45,6 +46,14 @@ test: tests/tests.otarget
 
 examples: examples/examples.otarget
 #	@for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
+
+# Benchmarks.
+
+benchmarks: benchmarks/benchmarks.otarget
+	@for f in $(shell cat benchmarks/benchmarks.itarget); do \
+	  $(TIME) -f "$$f: %e seconds" ./$$f; \
+	  if [ $$? -ne 0 ]; then exit 1; fi; \
+	done
 
 # Install.
 

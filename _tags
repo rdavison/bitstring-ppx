@@ -3,7 +3,7 @@ true: package(ocplib-endian)
 <src/bitstring_persistent.*>: package(ppx_tools.metaquot), package(unix)
 <src/ppx_bitstring.*>: package(ppx_tools.metaquot), package(re), package(unix)
 <src>: include
-<{tests,examples,cil-tools}/*.{byte,native,ml}>: use_ppx_bitstring, package(unix)
+<{tests,examples,cil-tools,benchmarks}/*.{byte,native,ml}>: use_ppx_bitstring, package(unix)
 <cil-tools/bitstring_import_c.*>: package(extlib), package(cil), package(findlib)
 <tools/create_test_pattern.*>: package(ppx_tools.metaquot), package(unix)
 <tests/test_51_open_pattern.ml>: use_test_bmpp
