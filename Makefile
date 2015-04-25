@@ -21,13 +21,13 @@
 OCAMLBUILD = ocamlbuild -classic-display -use-ocamlfind
 PREFIX = $(shell opam config var prefix)
 
-bitstring:
-	$(OCAMLBUILD) src/bitstring.cma src/bitstring.cmxa
+all: lib ppx
 
-ppx_bitstring:
-	$(OCAMLBUILD) src/ppx_bitstring.byte src/ppx_bitstring.native
+lib: src/bitstring.cma src/bitstring.cmxa src/bitstring_persistent.cma src/bitstring_persistent.cmxa
 
-%.byte %.native %.otarget:
+ppx: src/ppx_bitstring.byte src/ppx_bitstring.native
+
+%.byte %.native %.otarget %.cma %.cmxa:
 	$(OCAMLBUILD) $@
 
 # Tests
@@ -72,4 +72,4 @@ gh-pages: doc
 	git -C .gh-pages push origin gh-pages -f
 	rm -rf .gh-pages
 
-.PHONY: doc clean install uninstall
+.PHONY: doc clean install uninstall %.byte %.native %.cma %.cmxa %.otarget
