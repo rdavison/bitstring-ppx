@@ -64,24 +64,24 @@ let bitstring_of_string str = str, 0, String.length str lsl 3
 let bitstring_of_chan chan =
   let tmpsize = 16384 in
   let buf = Buffer.create tmpsize in
-  let tmp = String.create tmpsize in
+  let tmp = Bytes.create tmpsize in
   let n = ref 0 in
   while n := input chan tmp 0 tmpsize; !n > 0 do
-    Buffer.add_substring buf tmp 0 !n;
+    Buffer.add_subbytes buf tmp 0 !n;
   done;
   Buffer.contents buf, 0, Buffer.length buf lsl 3
 
 let bitstring_of_chan_max chan max =
   let tmpsize = 16384 in
   let buf = Buffer.create tmpsize in
-  let tmp = String.create tmpsize in
+  let tmp = Bytes.create tmpsize in
   let len = ref 0 in
   let rec loop () =
     if !len < max then (
       let r = min tmpsize (max - !len) in
       let n = input chan tmp 0 r in
       if n > 0 then (
-        Buffer.add_substring buf tmp 0 n;
+        Buffer.add_subbytes buf tmp 0 n;
         len := !len + n;
         loop ()
       )
@@ -93,24 +93,24 @@ let bitstring_of_chan_max chan max =
 let bitstring_of_file_descr fd =
   let tmpsize = 16384 in
   let buf = Buffer.create tmpsize in
-  let tmp = String.create tmpsize in
+  let tmp = Bytes.create tmpsize in
   let n = ref 0 in
   while n := Unix.read fd tmp 0 tmpsize; !n > 0 do
-    Buffer.add_substring buf tmp 0 !n;
+    Buffer.add_subbytes buf tmp 0 !n;
   done;
   Buffer.contents buf, 0, Buffer.length buf lsl 3
 
 let bitstring_of_file_descr_max fd max =
   let tmpsize = 16384 in
   let buf = Buffer.create tmpsize in
-  let tmp = String.create tmpsize in
+  let tmp = Bytes.create tmpsize in
   let len = ref 0 in
   let rec loop () =
     if !len < max then (
       let r = min tmpsize (max - !len) in
       let n = Unix.read fd tmp 0 r in
       if n > 0 then (
-        Buffer.add_substring buf tmp 0 n;
+        Buffer.add_subbytes buf tmp 0 n;
         len := !len + n;
         loop ()
       )
@@ -1028,20 +1028,20 @@ let string_of_bitstring (data, off, len) =
   else (
     (* Bit-twiddling case. *)
     let strlen = (len + 7) lsr 3 in
-    let str = String.make strlen '\000' in
+    let str = Bytes.make strlen '\000' in
     let rec loop data off len i =
       if len >= 8 then (
         let c = extract_char_unsigned data off len 8
         and off = off + 8 and len = len - 8 in
-        str.[i] <- Char.chr c;
+        Bytes.set str i (Char.chr c);
         loop data off len (i+1)
       ) else if len > 0 then (
         let c = extract_char_unsigned data off len len in
-        str.[i] <- Char.chr (c lsl (8-len))
+        Bytes.set str i (Char.chr (c lsl (8-len)))
       )
     in
     loop data off len 0;
-    str
+    Bytes.unsafe_to_string str
   )
 
 (* To channel. *)
@@ -1145,19 +1145,19 @@ let is_ones_bitstring ((data, off, len) as bits) =
 
 let index_out_of_bounds () = invalid_arg "index out of bounds"
 
-let put (data, off, len) n v =
-  if n < 0 || n >= len then index_out_of_bounds ()
-  else (
-    let i = off+n in
-    let si = i lsr 3 and mask = 0x80 lsr (i land 7) in
-    let c = Char.code data.[si] in
-    let c = if v <> 0 then c lor mask else c land (lnot mask) in
-    data.[si] <- Char.unsafe_chr c
-  )
+(* let put (data, off, len) n v = *)
+(*   if n < 0 || n >= len then index_out_of_bounds () *)
+(*   else ( *)
+(*     let i = off+n in *)
+(*     let si = i lsr 3 and mask = 0x80 lsr (i land 7) in *)
+(*     let c = Char.code data.[si] in *)
+(*     let c = if v <> 0 then c lor mask else c land (lnot mask) in *)
+(*     data.[si] <- Char.unsafe_chr c *)
+(*   ) *)
 
-let set bits n = put bits n 1
+(* let set bits n = put bits n 1 *)
 
-let clear bits n = put bits n 0
+(* let clear bits n = put bits n 0 *)
 
 let get (data, off, len) n =
   if n < 0 || n >= len then index_out_of_bounds ()
@@ -1184,7 +1184,7 @@ let hexdump_bitstring chan (data, off, len) =
   let off = ref off in
   let len = ref len in
   let linelen = ref 0 in
-  let linechars = String.make 16 ' ' in
+  let linechars = Bytes.make 16 ' ' in
 
   fprintf chan "00000000  ";
 
@@ -1197,21 +1197,21 @@ let hexdump_bitstring chan (data, off, len) =
     fprintf chan "%02x " byte;
 
     incr count;
-    linechars.[!linelen] <-
+    Bytes.set linechars !linelen
       (let c = Char.chr byte in
        if isprint c then c else '.');
     incr linelen;
     if !linelen = 8 then fprintf chan " ";
     if !linelen = 16 then (
-      fprintf chan " |%s|\n%08x  " linechars !count;
+      fprintf chan " |%s|\n%08x  " (Bytes.unsafe_to_string linechars) !count;
       linelen := 0;
-      for i = 0 to 15 do linechars.[i] <- ' ' done
+      for i = 0 to 15 do Bytes.set linechars i ' ' done
     )
   done;
 
   if !linelen > 0 then (
     let skip = (16 - !linelen) * 3 + if !linelen < 8 then 1 else 0 in
     for i = 0 to skip-1 do fprintf chan " " done;
-    fprintf chan " |%s|\n%!" linechars
+    fprintf chan " |%s|\n%!" (Bytes.unsafe_to_string linechars)
   ) else
     fprintf chan "\n%!"

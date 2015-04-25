@@ -895,10 +895,10 @@ end
     if the index is out of range of the bitstring.
 *)
 
-val set : bitstring -> int -> unit
+(* val set : bitstring -> int -> unit *)
   (** [set bits n] sets the [n]th bit in the bitstring to 1. *)
 
-val clear : bitstring -> int -> unit
+(* val clear : bitstring -> int -> unit *)
   (** [clear bits n] sets the [n]th bit in the bitstring to 0. *)
 
 val is_set : bitstring -> int -> bool
@@ -907,7 +907,7 @@ val is_set : bitstring -> int -> bool
 val is_clear : bitstring -> int -> bool
   (** [is_clear bits n] is true if the [n]th bit is set to 0. *)
 
-val put : bitstring -> int -> int -> unit
+(* val put : bitstring -> int -> int -> unit *)
   (** [put bits n v] sets the [n]th bit in the bitstring to 1
       if [v] is not zero, or to 0 if [v] is zero. *)
 
