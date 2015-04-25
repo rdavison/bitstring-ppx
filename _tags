@@ -8,3 +8,4 @@ true: package(ocplib-endian)
 <tools/create_test_pattern.*>: package(ppx_tools.metaquot), package(unix)
 <tests/test_51_open_pattern.ml>: use_test_bmpp
 true: debug
+true: safe_string

@@ -1052,7 +1052,7 @@ let bitstring_to_chan ((data, off, len) as bits) chan =
 
   if off land 7 = 0 then
     (* Easy case: string is byte-aligned. *)
-    output chan data (off lsr 3) (len lsr 3)
+    output_substring chan data (off lsr 3) (len lsr 3)
   else (
     (* Bit-twiddling case: reuse string_of_bitstring *)
     let str = string_of_bitstring bits in

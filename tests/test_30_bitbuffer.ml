@@ -18,7 +18,7 @@ let () =
         for i = 0 to strlen-1 do
           Bytes.set expected i (Char.chr (Random.int 256))
         done;
-        let last = Char.code expected.[strlen-1] in
+        let last = Char.code (Bytes.get expected (strlen-1)) in
         let last = last land (0xff lsl (8 - (len land 7))) in
         Bytes.set expected (strlen-1) (Char.chr last);
         Bytes.unsafe_to_string expected in
