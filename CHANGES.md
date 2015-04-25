@@ -6,7 +6,7 @@
 - Remove `Bitstring_config` module
 - Replace C bits by `ocplib-endian`
 - Use `-safe-string`
-- Remove `Bitstring.{set, put, clear}` (as these is incomptible with using
+- Remove `Bitstring.{set, put, clear}` (these are incomptible with
   `-safe-string`)
 
 #### 22 Apr 2015 Cambridge
