@@ -8,6 +8,7 @@ dev-repo: "https://www.github.com/nojb/ppx_bitstring.git"
 build: [make]
 build-doc: [make "doc"]
 depends: [
+  "ppx_tools"
   "ocamlfind" {build}
 ]
 conflicts: [ "bitstring" ]
