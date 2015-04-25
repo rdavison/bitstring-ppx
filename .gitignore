@@ -1,3 +1,4 @@
+tests/80_testdata/*.actual
 _build
 *.native
 *.byte
