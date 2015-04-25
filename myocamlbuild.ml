@@ -10,8 +10,9 @@ let () =
         ~dep:"tools/create_test_pattern.byte"
         ~prod:"tests/test.bmpp"
         (fun _ _ -> Cmd (S[A"tools/create_test_pattern.byte"; A"tests/test.bmpp"]));
+      mark_tag_used "use_test_bmpp";
       dep ["use_test_bmpp"] ["tests/test.bmpp"];
-      flag_and_dep ["ocaml"; "compile"; "use_bitstring"] & S[A"-ppx"; P"src/ppx_bitstring.byte"]
+      flag_and_dep ["ocaml"; "compile"; "use_ppx_bitstring"] & S[A"-ppx"; P"src/ppx_bitstring.byte"]
   | _ ->
       ()
   end

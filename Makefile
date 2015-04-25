@@ -19,6 +19,7 @@
 # $Id: Makefile.in 197 2012-08-10 11:52:44Z richard.wm.jones@gmail.com $
 
 OCAMLBUILD = ocamlbuild -classic-display -use-ocamlfind
+PREFIX = $(shell opam config var prefix)
 
 bitstring:
 	$(OCAMLBUILD) src/bitstring.cma src/bitstring.cmxa
@@ -33,36 +34,25 @@ ppx_bitstring:
 
 check: test
 
-test: tests.otarget
-	@for f in $(TESTS); do \
+test: tests/tests.otarget
+	@for f in $(shell cat tests/tests.itarget); do \
 	  echo Running $$f; \
-	  $$f.native; \
-	  if [ $$? -ne 0 ]; then exit 1; fi; \
+	  ./$$f; \
 	done
 #	@for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
 
-tests/test.bmpp: tools/create_test_pattern.byte
-	./create_test_pattern.byte $@.new
-	mv $@.new $@
-
 # Examples.
 
-examples: pa_bitstring.cmo bitstring.cma bitstring_persistent.cma
-	@for f in $(EXAMPLES); do \
-	  echo Building $$f; \
-	  $(OCAMLFIND) ocamlc $(OCAMLCFLAGS) $(PP) \
-	    -package unix -linkpkg -I . bitstring.cma $$f.ml -o $$f; \
-	  if [ $$? -ne 0 ]; then exit 1; fi; \
-	done
-	@for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
+examples: examples/examples.otarget
+#	@for d in $(SUBDIRS); do $(MAKE) -C $$d $@; done
 
 # Install.
 
 install: uninstall
-	opam-installer --prefix=$(opam config var prefix) opam.install
+	opam-installer --prefix=$(PREFIX) opam.install
 
 uninstall:
-	opam-installer --prefix=$(opam config var prefix) -u opam.install
+	opam-installer --prefix=$(PREFIX) -u opam.install
 
 clean:
 	$(OCAMLBUILD) -clean
