@@ -3,13 +3,10 @@ maintainer: "Nicolas Ojeda Bar <n.oje.bar@gmail.com>"
 authors: "Nicolas Ojeda Bar <n.oje.bar@gmail.com>"
 homepage: "https://www.github.com/nojb/ppx_bitstring"
 bug-reports: "https://www.github.com/nojb/ppx_bitstring/issues"
-license: "MIT"
+license: "GPL2"
 dev-repo: "https://www.github.com/nojb/ppx_bitstring.git"
-build: [make]
+build: [make "all"]
 build-doc: [make "doc"]
-depends: [
-  "ppx_tools"
-  "ocamlfind" {build}
-]
-conflicts: [ "bitstring" ]
+depends: ["base-bytes" "ppx_tools" "ocamlfind" {build}]
+conflicts: ["bitstring"]
 available: [ocaml-version = "4.02.1"]
