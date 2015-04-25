@@ -14,14 +14,14 @@ let () =
     for len = 1 to 65 do
       let expected =
         let strlen = (len+7) lsr 3 in
-        let expected = String.create strlen in
+        let expected = Bytes.create strlen in
         for i = 0 to strlen-1 do
-          expected.[i] <- Char.chr (Random.int 256)
+          Bytes.set expected i (Char.chr (Random.int 256))
         done;
         let last = Char.code expected.[strlen-1] in
         let last = last land (0xff lsl (8 - (len land 7))) in
-        expected.[strlen-1] <- Char.chr last;
-        expected in
+        Bytes.set expected (strlen-1) (Char.chr last);
+        Bytes.unsafe_to_string expected in
 
       (* Create a random bitstring:
        * +-------------+-------------------------------------------+
