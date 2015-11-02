@@ -1,7 +1,7 @@
 true: package(ocplib-endian)
 <src/bitstring.*>: package(unix)
 <src/bitstring_persistent.*>: package(ppx_tools.metaquot), package(unix)
-<src/ppx_bitstring.*>: package(ppx_tools.metaquot), package(re), package(unix)
+<src/ppx_bitstring.*>: package(ppx_tools.metaquot), package(unix)
 <src>: include
 <{tests,examples,cil-tools,benchmarks}/*.{byte,native,ml}>: use_ppx_bitstring, package(unix)
 <cil-tools/bitstring_import_c.*>: package(extlib), package(cil), package(findlib)
