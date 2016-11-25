@@ -8,5 +8,5 @@ dev-repo: "https://www.github.com/nojb/ppx_bitstring.git"
 build: [make "all"]
 build-doc: [make "doc"]
 depends: ["base-bytes" "ppx_tools" {build} "ocplib-endian" "ocamlfind" {build}]
-conflicts: ["bitstring"]
+conflicts: ["bitstring" "ppx_bitstring"]
 available: [ocaml-version >= "4.02.1"]

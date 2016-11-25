@@ -1,4 +1,4 @@
-name = "bitstring"
+name = "bitstring-ppx"
 version = "0.1.0"
 description = "bitstrings and bitstring matching"
 requires = "ocplib-endian unix"
@@ -7,7 +7,7 @@ archive(native) = "bitstring.cmxa"
 
 package "persistent" (
   version = "0.1.0"
-  requires = "bitstring"
+  requires = "bitstring-ppx"
   description = "Persistent patterns for bitstring (requires compiler-libs)"
   archive(byte) = "bitstring_persistent.cma"
   archive(native) = "bitstring_persistent.cmxa"
@@ -15,7 +15,7 @@ package "persistent" (
 
 package "ppx" (
   version = "0.1.0"
-  requires = "bitstring"
+  requires = "bitstring-ppx"
   description = "ppx syntax extension: bitstring operators"
   ppx = "./ppx_bitstring.byte"
 )
