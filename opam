@@ -7,6 +7,17 @@ license: "GPL2"
 dev-repo: "https://www.github.com/nojb/ppx_bitstring.git"
 build: [make "all"]
 build-doc: [make "doc"]
-depends: ["base-bytes" "ppx_tools" {build} "ocplib-endian" "ocamlfind" {build}]
-conflicts: ["bitstring" "ppx_bitstring"]
+depends:
+[
+  "base-bytes"
+  "ocamlbuild" {build}
+  "ppx_tools" {build}
+  "ocplib-endian"
+  "ocamlfind" {build}
+]
+conflicts:
+[
+  "bitstring"
+  "ppx_bitstring"
+]
 available: [ocaml-version >= "4.02.1"]
