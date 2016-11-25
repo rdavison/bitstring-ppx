@@ -62,8 +62,8 @@ let expand_named_pattern loc name =
  * expressions such as [k], [k+c], [k-c] etc.
  *)
 let rec expr_is_constant = function
-  | {pexp_desc = Pexp_constant (Const_int i)} -> (* Literal integer constant. *)
-    Some i
+  | {pexp_desc = Pexp_constant (Pconst_integer (s, _))} -> (* Literal integer constant. *)
+    Some (int_of_string s)
   | [%expr [%e? {pexp_desc = Pexp_ident {txt=Lident op}}] [%e? a] [%e? b]] ->
     (match expr_is_constant a, expr_is_constant b with
      | Some a, Some b ->               (* Integer binary operations. *)
@@ -1169,7 +1169,7 @@ let structure_item mapper = function
          (({txt = "bitstring"}, PStr
              [{pstr_desc =
                  Pstr_eval
-                   ({pexp_desc = Pexp_constant (Const_string (filename, None))}, _)}]), _);
+                   ({pexp_desc = Pexp_constant (Pconst_string (filename, None))}, _)}]), _);
      pstr_loc = loc} ->
       load_patterns_from_file loc filename;
       Str.mk (Pstr_eval (Ast.unit (), []))
