@@ -180,7 +180,7 @@ let named_from_string = Marshal.from_string
 let create_pattern_field loc =
   {
     field = Pat.any ();
-    flen = Exp.constant (Pconst_integer ("32", None));
+    flen = Exp.constant (Const.int 32);
     endian = ConstantEndian Bitstring.BigEndian;
     signed = false;
     t = Int;
@@ -196,17 +196,17 @@ let set_lident_patt field id =
   { field with field = Pat.var ~loc { txt = id; loc } }
 let set_int_patt field i =
   let loc = field.loc in
-  { field with field = Pat.constant ~loc (Pconst_integer (string_of_int i, None)) }
+  { field with field = Pat.constant ~loc (Const.int i) }
 let set_string_patt field str =
   let loc = field.loc in
-  { field with field = Pat.constant ~loc (Pconst_string (str, None)) }
+  { field with field = Pat.constant ~loc (Const.string str) }
 let set_unbound_patt field =
   let loc = field.loc in
   { field with field = Pat.any ~loc () }
 let set_patt field patt = { field with field = patt }
 let set_length_int field flen =
   let loc = field.loc in
-  { field with flen = Exp.constant ~loc (Pconst_integer (string_of_int flen, None)) }
+  { field with flen = Exp.constant ~loc (Const.int flen) }
 let set_length field flen = { field with flen = flen }
 let set_endian field endian = { field with endian = ConstantEndian endian }
 let set_endian_expr field expr = { field with endian = EndianExpr expr }
@@ -217,7 +217,7 @@ let set_type_bitstring field = { field with t = Bitstring }
 let set_location field loc = { field with loc = loc }
 let set_offset_int field i =
   let loc = field.loc in
-  { field with offset = Some (Exp.constant ~loc (Pconst_integer (string_of_int i, None))) }
+  { field with offset = Some (Exp.constant ~loc (Const.int i)) }
 let set_offset field expr = { field with offset = Some expr }
 let set_no_offset field = { field with offset = None }
 let set_check field expr = { field with check = Some expr }
@@ -232,8 +232,8 @@ let set_no_save_offset_to field = { field with save_offset_to = None }
 
 let create_constructor_field loc =
   {
-    field = Exp.constant (Pconst_integer ("0", None));
-    flen = Exp.constant (Pconst_integer ("32", None));
+    field = Exp.constant (Const.int 0);
+    flen = Exp.constant (Const.int 32);
     endian = ConstantEndian Bitstring.BigEndian;
     signed = false;
     t = Int;
@@ -249,10 +249,10 @@ let set_lident_expr field id =
   { field with field = Exp.ident ~loc { txt = Lident id; loc } }
 let set_int_expr field i =
   let loc = field.loc in
-  { field with field = Exp.constant ~loc (Pconst_integer (string_of_int i, None)) }
+  { field with field = Exp.constant ~loc (Const.int i) }
 let set_string_expr field str =
   let loc = field.loc in
-  { field with field = Exp.constant ~loc (Pconst_string (str, None)) }
+  { field with field = Exp.constant ~loc (Const.string str) }
 let set_expr field expr =
   { field with field = expr }
 
