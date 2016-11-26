@@ -67,7 +67,7 @@ and alt =
  * expressions such as [k], [k+c], [k-c] etc.
  *)
 let rec expr_is_constant = function
-  | {pexp_desc = Pexp_constant (Pconst_integer (s, _))} ->      (* Literal integer constant. *)
+  | {pexp_desc = Pexp_constant (Pconst_integer (s, None))} ->      (* Literal integer constant. *)
     Some (int_of_string s)
   | [%expr [%e? a] + [%e? b]] -> (* Addition of constants. *)
     (match expr_is_constant a, expr_is_constant b with
@@ -107,7 +107,7 @@ let patt_printer = function
 
 let rec expr_printer = function
   | { pexp_desc = Pexp_ident { txt = Lident id } } -> id
-  | { pexp_desc = Pexp_constant (Pconst_integer (s, _)) } -> s
+  | { pexp_desc = Pexp_constant (Pconst_integer (s, None)) } -> s
   | { pexp_desc = Pexp_apply ({ pexp_desc = Pexp_ident { txt = Lident op } }, [(_, a); (_, b)]) } ->
     sprintf "%s %s %s" op (expr_printer a) (expr_printer b)
   | _ -> "[expr]"
